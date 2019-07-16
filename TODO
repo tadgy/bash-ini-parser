@@ -10,4 +10,5 @@
                              This option should not be used except for debugging.
 
 
-Have the parser accept a filename of '-' to indicate it should read from stdin.
+* Allow changing the characters accepted as comments in the INI file.
+* Allow the key/value deliminator to be more than one character?

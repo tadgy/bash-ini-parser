@@ -1,6 +1,8 @@
-Blank lines are ignored.
-Lines starting with # and ; (configurable; after leading whitespace removal) are treated as comments.
-  - Comments must appear on their own line.
+General file format
+-------------------
+* Blank lines are ignored.
+* Lines starting with # and ; (configurable), after leading whitespace removal, are treated as comments.
+    - Comments must appear on their own line.
 Values can optionally be bookmarked with single or double quotes.
   - If quotes are to be used, they must be the first and last characters of the value
   - Occurances of the bookending quotes to be used within the value must be \ escaped.					???
@@ -10,3 +12,11 @@ Values can be continued by use of \ in the last column.
   - Subsequent lines are subject to leading whitespace removal as normal.
   - Comments are not recognised on subsequent lines - they are treated as part of the value.
 Escaping of shell special characters is not required.									???
+
+
+[section] format
+----------------
+* Section names must only be comprised of alphanumeric characters, plus _.-+
+* The .-+ characters in section names will be converted to _
+* Section names are case sensitive (unless --ignore-case? is used), so 'Foo' and 'foo' are different sections.
+* Whitespace is ignored before and after the section name.

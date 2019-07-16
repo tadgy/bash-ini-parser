@@ -4,7 +4,7 @@
 #  * Provides a good explanation of the ini format - use this for docs *
 #  * INI's have 'sections' and 'properties'.  Properties have key = value format *
 #
-#  Case insensitivity:	Add a case sensitive option
+#  Case insensitivity:	Add a case insensitive option (converts everything to lowercase)
 #  Comments:		Allow ; and # for comments.  Must be on their own line
 #  Blank lines:		Allow blank lines always
 #  Duplicate names:	Duplicate property values overwrite previous values.
@@ -40,16 +40,43 @@
 #	* To make env vars available to subsequent programs, use -x|--export.
 
 
-parser_help() {
-#........1.........2.........3.........4.........5.........6.........7.........8.........9.........0.........1.........2.........3.........4.........5
-  cat <<EOF
-Usage: ${0##*/} [options] <inifile>
-Parse an ini file into environment variables which can be used natively in Bash.
+parser_getopts() {
+  while [ ! -z "$1" ]; do
+    case "$1" in
+      -h|-help|--help)
+          parser_help
+          return 0
+        ;;
+      -v|-version|--version)
+          parser_version
+          return 0
+        ;;
+      --)
+          # Stop option processing.
+          break
+        ;;
+      -*|--*)
+          echo "${0##*/}: invalid option: $1"
+          return 1
+        ;;
+    esac
+  done
+}
 
-Options:
-  -e <varname>, --envvar=<varname>
-      The prefix of the environment variables set by the parser.
-      The default is 'INI'.
+parser_help() {
+#........1.........2.........3.........4.........5.........6.........7.........8
+  cat <<-EOF
+	Usage: ${0##*/} [options] <inifile>
+	Parse an ini file into environment variables which can be used natively in Bash.
+
+	Options:
+	  -e <varname>, --envvar=<varname>
+	      The prefix of the environment variables set by the parser.
+	      The default is 'INI'.
+	#  -p <prefix>, --prefix=<prefix>     Set the prefix to all environment variables set by the parser.  A single
+	#                                     underscore '_' is automatically added to the end.
+	#                                     Default: INI
+
   -d <char(s)>, --envdelim=<char(s)>
       The character(s) to use as a deliminator between the environment variable
       and the section name.  This is used when creating the environment
@@ -58,19 +85,21 @@ Options:
       deliminator at all, use -d '' or --envdelim=''.
       The default deliminator is a single underscore '_' ???
   -i, --implied-boolean
-      Options usually require a parameter (after the =) in order to be set.
-      With this option, any option without a parameter contained in the ini file
-      if assumed to be a boolean 'true' and set accordingly.  Likewise, any option
-      preceeded with 'no_' (eg: no_foo) will set the option 'foo' to boolean 'false'.
+      Options usually require a value (after the =) in order to be set.
+      With this option, any key without a value contained in the ini file
+      if assumed to be a boolean 'true' and set accordingly.  Likewise, any key
+      preceeded with 'no_' (eg: no_foo) will set the value of 'foo' to boolean 'false'.
       Cannot be used with --no-boolean.
   -c, --case-sensitive
       Be case sensitive with section names and properties.
       Section names and property names will be used as is - no translation.
+-d, --delim
+The deliminator between the key and value.  Must be a single character.  Default =
   -g, --global-name <name>
       INI files can contain an optional implied "global" section - where there
       are property names/values before any [section] header.  This option
       specified what section name the implied "global" section should be given
-      in the environment variables which are set.  The default is 'GLOBAL'.
+      in the environment variables which are set.  The default is 'global'.
 
   -l, --lowercase
       Usually, environment variables are converted to all uppercase before being set.
@@ -92,9 +121,9 @@ Options:
       Usually sections with the same name will have their options merged, and
       duplicate option values will overwrite previous ones.
 
-
-  --test
-      Test/validate the ini file by running it through the parser.  Testing the
+#  -c, --check-only                   Only validate the ini file, don't parse it into the environment
+  --check
+      Check/validate the INI file by running it through the parser.  Testing the
       ini file will report any problems or syntax errors in the file, but will
       not set up the environment variables as would happen in normal parsing.
       Any parse errors are reported to stderr.  When combined with the --debug
@@ -107,11 +136,23 @@ Options:
       Show (this) help.
   -v, --version
       Show version and copyright information.
+  #  -b, --booleans                     Allow 'yes', 'true', 'on', 'no', 'false', 'off' to be used as values
+  #                                     and interpited as boolean values.  'yes', 'true', 'on' set option value to "1".
+  #                                     'no', 'false', 'off' set option value to "0".
+  #  -?, --????                         Interprite the presense of an option name without any value as a boolean
+  #                                     'true', and no_<option> as a boolean 'false', setting the option value
+  #                                     to 1 or 0 accordingly.  eg: 'foo' in the ini file would set option foo = 1
+  #                                     and 'no_foo' would set foo = 0.
+  #                                     ???? Implies -b ????
+
+# --check			Parse the file, report any problems, but don't output the code.
+# --debug			Show all details of the parsing process to stderr.  If --check is used, no code is outputted.
+
 EOF
 }
 
 parser_version() {
-        #........1.........2.........3.........4.........5.........6.........7.........8.........9.........0.........1.........2.........3.........4.........5
+        #........1.........2.........3.........4.........5.........6.........7.........8
   cat <<-EOF
 	Bash INI file parser v0.1.0.
 	Copyright (C) 2019 Darren 'Tadgy' Austin <darren (at) afterdark.org.uk>.
@@ -127,105 +168,99 @@ parser_version() {
 
 parse_ini() {
   # Bash v4.1+ is required.
-  if [[ -z "${BASH_VERSINFO[0]}" ]] || ((BASH_VERSINFO[0] < 4)) || ((BASH_VERSINFO[1] < 1)); then
-    echo "${0##*/}: minimum of bash v4.1 required" >&2
+  if [[ -z "${BASH_VERSINFO[0]}" ]] || ((BASH_VERSINFO[0] < 4)); then
+    echo "${0##*/}: minimum of bash v4 required" >&2
     return 1
   fi
 
   # Set defaults.
-  local PARSER_ENV_PREFIX="INI"
-  local PARSER_ENV_DELIM="_"
-  local PARSER_ALPHA_CLASS="[:alnum:]"		# All alphanumeric characters.
-  local PARSER_PUNCT_CLASS="-+_. !\"£\$%^&*()="$'\t'	# Characters that are converted to _ in [section] names.
-!"£$%^&*()-_=+{}'@#~\|,<.>/?
-  # TEMP:
-  local PARSER_INIFILE="test.ini"
+  local ACCEPTABLE_CHARS="[:alnum:]_.+-"	# Characters allowed in [section] names and keys.  Must be valid regex bracket exp.
+  local CONVERT_CHARS=".+-"			# Characters in [section] names or keys that are converted to underscore.
+  local KEYVALUE_DELIM="="			# Delimintator between key and value.
+  local VARIABLE_PREFIX="INI"			# Prefix for all variables.
+  local VARIABLE_DELIM="_"			# Deliminator between prefix and section.
 
+  # Parse options.
+  # parser_getopts "$@" || return 1
 
-  parser_getopts() {
-    while [ ! -z "$1" ]; do
-      case "$1" in
-        -h|-help|--help)
-            parser_help
-            return 0
-          ;;
-        -v|-version|--version)
-            parser_version
-            return 0
-          ;;
-        --)
-            # Stop option processing.
-            break
-          ;;
-        -*|--*)
-            echo "${0##*/}: invalid option: $1"
-            return 1
-          ;;
-      esac
-    done
-  }
-
-  # Parse arguments
-#  parser_getopts "$@" || return 1
-
-  # File accessability checks
-  if [ ! -e "$PARSER_INIFILE" ]; then
-    echo "${0##*/}: $PARSER_INIFILE: no such file"
+  # Make sure we have an INI file after all the options are removed.
+  if (($# == 0)) || (($# > 1)) || [[ -z "$1" ]]; then
+    echo "Usage: ${0##*/} [options] <INI file>" >&2
+    echo "Try: ${0##*/} --help" >&2
     return 1
-  elif [ ! -f "$PARSER_INIFILE" ]; then
-    echo "${0##*/}: $PARSER_INIFILE: not a regular file"
-    return 1
-  elif [ ! -r "$PARSER_INIFILE" ]; then
-    echo "${0##*/}: $PARSER_INIFILE: permission denied"
-    return 1
+  else
+    local INIFILE="$1"
   fi
 
-  # Open the ini file for reading
-  if ! exec {PARSER_INIFD}<"$PARSER_INIFILE"; then
-    echo "${0##*/}: $PARSER_INIFILE: failed to open"
-    return 1
+  if [[ "$INIFILE" == "-" ]]; then
+    INIFD="1"
+  else
+    # File accessability checks
+    if [ ! -e "$INIFILE" ]; then
+      echo "${0##*/}: no such file: $INIFILE" >&2
+      return 1
+    elif [ ! -f "$INIFILE" ]; then
+      echo "${0##*/}: not a regular file: $INIFILE" >&2
+      return 1
+    elif [ ! -r "$INIFILE" ]; then
+      echo "${0##*/}: permission denied: $INIFILE" >&2
+      return 1
+    fi
+
+    # Open the ini file for reading
+    if ! exec {INIFD}<"$INIFILE"; then
+      echo "${0##*/}: failed to open INI file" >&2
+      return 1
+    fi
   fi
 
-  # FIXME: Need to handle this properly:
+  # Extglob is required.
   shopt -s extglob
 
-  # Parse the ini file
-  local IFS=$'\n' PARSER_READLINE PARSER_READLINENO=0 REPLY
-#  local PARSER_CURSEC
+  # Variables
+  local LINE LINENUMBER=0 REPLY
+
+  # Parse the INI file.
   while :; do
+    unset LINE
     while :; do
-      # Read a line of input from the file descriptor
-      read -r -u $PARSER_INIFD || break
-      ((PARSER_READLINENO++))
+      # Read a line of input from the file descriptor.
+      # The 'read' will do the job of removing leading whitespace from the line.
+      read -r -u "$INIFD" REPLY || break 2
+      ((LINENUMBER++))
 
-      # Skip any blank/empty or comment lines
-      [[ "$REPLY" =~ ^[[:blank:]]*([#;].*)*$ ]] && continue
-
-      for ((I = 1; I < ${#REPLY}; I++)); do
-        if [[ "${REPLY: -$I:1}" =~ [[:space:]] ]]; then
-          continue
-        fi
-      done
-
-      # If line ends in \, save the line and read next.
-      # if [[ "${REPLY:-1:1}" =~ "\" ]]
-
+      # Handle line continuations.
+      if [[ "${REPLY: -1:1}" == "\\" ]]; then
+        LINE+="${REPLY:0:-1}"
+        continue
+      else
+        LINE+="$REPLY"
+        break
+      fi
     done
 
-printf "<%s>\n" "$PARSER_READLINE"
-exit
+    # Ignore the line if it's a comment.
+    [[ "$LINE" =~ ^[[:blank:]]*([#;].*)*$ ]] && continue
 
-    # Strip any leading whitespace from the line
-# Not required here,
-#   PARSER_READLINE="${PARSER_READLINE/#+([[:space:]])/}"
+printf "<%s>\n" "$LINE"
+    # Process the line.
+    if [[ "${LINE:0:1}" == "[" ]]; then
+      if [[ "${LINE: -1:1}" != "]" ]]; then
+        echo "${0##*/}: line $LINENUMBER: unmatched [ in section definition - ignoring section" >&2
+        IGNORE_SECTION=1
+        continue
+      elif [[ "$LINE" =~ [^[:blank:][]$ACCEPTABLE_CHARS] ]]; then
+        echo "${0##*/}: line $LINENUMBER: invalid characters in section definition - ignoring section" >&2
+        IGNORE_SECTION=1
+        continue
+      else
+        # Strip the []s.
+        LINE="${LINE/#[/}"
+        LINE="${LINE/%]/}"
 
-    # Is this a section header?
-    if [ "${PARSER_READLINE:0:1}" = "[" ]; then
-      if [[ "$PARSER_READLINE" =~ ^\[[$PARSER_PUNCT_CLASS$PARSER_ALPHA_CLASS]+\]$ ]]; then
-        # Strip the []s and any leading/trailing whitespace.
-        # FIXME: Allow leaving the leading/trailing whitespace in place with option?
-        PARSER_READLINE="${PARSER_READLINE/#\[*([[:space:]])/}"
-        PARSER_READLINE="${PARSER_READLINE/%*([[:space:]])\]/}"
+printf "<%s>\n" "$LINE"
+continue
+
 
         # FIXME: To convert single/consecutive punct_class into a single _ :
         PARSER_READLINE="${PARSER_READLINE//+([$PARSER_PUNCT_CLASS])/_}"
@@ -243,19 +278,34 @@ exit
         # FIXME: If doing validation only, don't declare here.
         PARSER_CURSEC="$PARSER_READLINE"
         declare -g -A $PARSER_ENV_PREFIX$PARSER_READLINE
-
-	set | grep $PARSER_ENV_PREFIX$PARSER_READLINE
-      else
-        echo "${0##*/}: $PARSER_INIFILE:$PARSER_READLINENO: invalid section name or format"
-	# FIXME: If doing validation only, continue to process - with a flag indicating every option in this
-	#	 section will be ignored if (-?) option is set.
-	#	If (-?) option, set flag to skip all further options until reaching next section marker.
-        return 1
+        IGNORE_SECTION=0
       fi
-    else
-#      echo "Not header: $PARSER_READLINENO: $PARSER_READLINE"
-      true
     fi
+
+    # if $IGNORE_SECTION != 0; then continue
+
+    # Remove trailing whitespace from key part.
+    LINE="${LINE/+([[:blank:]])$KEYVALUE_DELIM/$KEYVALUE_DELIM}"
+
+    # Remove leading whitespace from value part.
+    LINE="${LINE/$KEYVALUE_DELIM+([[:blank:]])/$KEYVALUE_DELIM}"
+
+    # Extract the key and the value
+    KEY="${LINE%%$KEYVALUE_DELIM*}"
+    VALUE="${LINE#*$KEYVALUE_DELIM}"
+
+    # If the value starts with a " or ' it must end with same.
+    if [[ "${VALUE:0:1}" =~ [\"\'] ]]; then
+      if [[ "${VALUE:0:1}" != "${VALUE: -1:1}" ]]; then
+        echo "${0##*/}: unmatched quotes on line $LINENUMBER - ignoring line"
+        continue
+      fi
+    fi
+
+printf "<%s = %s>\n" "$KEY" "$VALUE"
+
+exit
+
 
 #  if first non-whitespace char after the first = is " or ', check the last non-whitespace char on the line.
 #    if that character is a matching " or ', skip to normal processing.
@@ -281,4 +331,5 @@ exit
   done
 }
 
-parse_ini
+parse_ini "$@"
+exit $?
