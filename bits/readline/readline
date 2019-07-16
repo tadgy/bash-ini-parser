@@ -1,0 +1,76 @@
+#!/bin/bash 
+
+shopt -s extglob
+
+exec {FD}<readline.ini
+
+#key2value() {
+#  # SECTION=
+#  KEY="$1"
+#
+#  if [[ "${VALUE:0:1}" =~ [\"\'] ]]; then
+#    printf "%s" "${VALUE:1:-1}"
+#  else
+#    printf "%s" "$VALUE"
+#  fi
+#}
+
+while :; do
+  LINE=""
+  while :; do
+    # The 'read' will remove leading whitespace from the line.
+    read -r -u $FD REPLY || break 2
+
+    # Handle line continuations.
+    if [[ "${REPLY: -1:1}" == "\\" ]]; then
+      LINE+="${REPLY:0:-1}"
+      continue
+    else
+      LINE+="$REPLY"
+      break
+    fi
+  done
+
+  # Ignore the line if it's a comment.
+  # FIXME: Make it so the comments can be # or ; or both.
+  [[ "$LINE" =~ ^[[:blank:]]*([#\;].*)*$ ]] && continue
+
+  # Remove trailing whitespace from key part.
+  LINE="${LINE/+([[:blank:]])=/=}"
+
+  # Remove leading whitespace from value part.
+  LINE="${LINE/=+([[:blank:]])/=}"
+
+  # Extract the key and the value
+  KEY="${LINE%%=*}"
+  VALUE="${LINE#*=}"
+
+  # If the value starts with a " or ' it must end with same.
+  if [[ "${VALUE:0:1}" =~ [\"\'] ]]; then
+    if [[ "${VALUE:0:1}" != "${VALUE: -1:1}" ]]; then
+      echo "Unmatched quotes - ignoring line."
+      continue
+    fi
+  fi
+
+
+
+
+  printf "<%s> = <%s>\n" "$KEY" "$VALUE"
+
+  unset FOO
+  declare -A FOO
+  FOO["$KEY"]=$VALUE
+printf "%s\n" "$(key2value "$KEY")"
+
+#  printf "%q\n" "$VALUE"
+#  declare -p FOO
+  echo
+done
+
+
+
+
+# FOO="test1 = test2 = test3"
+# KEY="${FOO%%=*}"
+# VALUE="${FOO#*=}"

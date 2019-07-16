@@ -1,0 +1,13 @@
+  -s <list>, --section=<list>Only parse the specified section(s).  List multiple
+                             sections seperated by commas.  For the global section
+                             use '.'.  For every section except global, use '*'.
+                             For every section including the global section, don't
+                             use this option (or use '.,*').
+
+  --ignore-errors            Ignore parse errors in the ini file and continue
+                             processing.  This will cause options to be ignored
+                             and whole sections to be skipped if errors are found.
+                             This option should not be used except for debugging.
+
+
+Have the parser accept a filename of '-' to indicate it should read from stdin.

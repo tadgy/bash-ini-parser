@@ -1,0 +1,123 @@
+#!/bin/bash
+
+# Todo:
+#  Change case of variables:  \L \U \E
+#  export SECLIST="SECTIONS"
+export VARPREFIX="INI_"
+export SECPREFIX="SECTION_"
+export SECCNAMEKEY="%cannonical name%"
+export TOPSEC="global"
+initest() {
+  echo "declare -A ${VARPREFIX}${SECPREFIX}${TOPSEC}"
+  echo "${VARPREFIX}${SECPREFIX}${TOPSEC}[${SECCNAMEKEY}]=\"${TOPSEC}\""
+  cat test.ini | sed -r "{
+    /^[[:blank:]]*(#|;|$)/ d
+    /^[[:blank:]]*\[.*\][[:blank:]]*$/ {
+      s/(^[[:blank:]]*\[[[:blank:]]*|[[:blank:]]*\][[:blank:]]*$)//g ; h
+      s/([[:blank:]]+|[^[:alnum:]])/_/g
+      s/(.*)/declare -A ${VARPREFIX}${SECPREFIX}\1\n${VARPREFIX}${SECPREFIX}\1/ ; P ; g
+      s/(.*)/\[${SECCNAMEKEY}\]=\"\1\"/
+    }
+    /^[[:blank:]]*[[:print:]]+[[:blank:]][=:]/ {
+      d
+    }
+  }"
+}
+
+; initest
+
+
+       [       [        invalid-section###3   ] $$    ]                    $
+[        invalid-section###3   ] $$X
+# Squash multiple blanks and invalid chars to single _ --  s/[^[:alnum:]]+/_/g
+_invalid_section_3_
+# Blanks and invalid chars replaced with _ no sqash --  s/[^[:alnum:]]/_/g
+_________invalid_section___3_______
+# Squash multiple blanks to single _ and replace invalid chars with _ --  s/([[:blank:]]+|[^[:alnum:]])/_/g
+__invalid_section___3_____
+
+
+#s/[[:blank:]]*\][[:blank:]]*[^[:alnum:]]+/_/g
+#    s/^[[:blank:]]*\[[[:blank:]]*/declare -A ${VAR}_/
+#    s/[[:blank:]]*\][[:blank:]]*$/=(/
+
+#    s/(^[[:blank:]]*\[[[:blank:]]*)|([[:blank:]]*\][[:blank:]]*$)/X/g
+#    s/[[:blank:]]+/ /g
+#    s/^[[:blank:]]*\[[[:blank:]]*([[:graph:]]*)[[:blank:]]*\][[:blank:]]*$/[\1]/
+l 120
+#    s/^[[:blank:]]*(\[|\]) [[:blank:]]*$/\1/g
+#    s/([^[:alnum:]]|_+)/_/g
+  }
+}"
+
+    s/[[:blank:]]*(\[|\])[[:blank:]]*/\1/g
+    s/([^[:alnum:]]|_+)/_/g
+
+
+label regex jump back if s was done
+
+
+#    s/\[_*([^]]*)/declare -A ${VAR}_\1=(/
+#    s/\[_*(.*)_*\].*/declare -A ${VAR}_\1=(/
+#    s/[[:blank:]]*\[(.*)\].*/declare -A ${VAR}_\1=(/
+  }
+#  /^(\)|declare -A)/ ! {
+#    s/^[[:blank:]]*/\[/
+#    s/[[:blank:]]*=[[:blank:]]*/\]=\"/
+#    s/$/\"/g
+#  }
+}"
+
+
+# Variables:
+#  INI_ENV_PREFIX="INI_"
+#  INI_GLOBAL_??="GLOBAL"
+#  INI_SECTION_??="SECTION"
+# Options:
+#  
+
+exit
+
+  /^[[:blank:]]*\[.*\]/ {
+    s/[[:blank:]]*\[/)\n/g
+    # s/(.*)\]/declare -A ${VAR}_\1=(/g
+  }
+
+
+
+  -e "/^[[:blank:]]*\[.*\]/ s/[[:blank:]]*\[/)\n/g; s/(.*)\]/declare -A ${VAR}_\1=(/g"
+
+  -e 's/^[[:blank:]]*\</[
+
+
+sed -r \
+  -e '/^[[:blank:]]*(#|;|$)/ d' \
+  -e "1 ideclare -A ${VAR}_${TOP}=(" \
+  -e "/^[[:blank:]]*\[.*\]/ s/[[:blank:]]*\[/)\n/g; s/(.*)\]/declare -A ${VAR}_\1=(/g"
+
+  -e 's/^[[:blank:]]*\</[
+
+
+
+  -e "1 s/^/declare -A ${VAR}_${TOP}=(\n/" \
+
+ # if a line ends with a backslash, append the next line to it
+ sed -e :a -e '/\\$/N; s/\\\n//; ta'
+
+ # print the line immediately before a regexp, but not the line
+ # containing the regexp
+ sed -n '/regexp/{g;1!p;};h'
+
+ # print the line immediately after a regexp, but not the line
+ # containing the regexp
+ sed -n '/regexp/{n;p;}'
+
+ # print section of file from regular expression to end of file
+ sed -n '/regexp/,$p'
+
+ # print section of file between two regular expressions (inclusive)
+ sed -n '/Iowa/,/Montana/p'             # case sensitive
+
+
+# Option (-r) to make all variables read only.
+# Option (-x) to export all variables.

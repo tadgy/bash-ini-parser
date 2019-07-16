@@ -1,0 +1,23 @@
+#!/bin/bash
+
+INIFILE=sanatise_section.ini
+
+
+  if ! exec 10<"$INIFILE"; then
+    echo "${0##*/}: $INIFILE: failed to open"
+    return 1
+  fi
+
+  shopt -s extglob
+
+  # Parse the ini file
+  IFS=$'\n'
+  BUFFER=""
+  while :; do
+    # Read a line of input from the file descriptor
+    read -u 10 LINE || break
+#    printf -- "->%s<-\n" "$LINE"
+    LINE="${LINE/#*([[:blank:]])\[*([[:blank:]])/}"
+    LINE="${LINE/%*([[:blank:]])\]*([[:blank:]])/}"
+    printf -- "->%s<-\n" "$LINE"
+  done
