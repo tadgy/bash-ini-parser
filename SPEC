@@ -20,3 +20,9 @@ Escaping of shell special characters is not required.									???
 * The .-+ characters in section names will be converted to _
 * Section names are case sensitive (unless --ignore-case? is used), so 'Foo' and 'foo' are different sections.
 * Whitespace is ignored before and after the section name.
+
+
+Booleans
+--------
+* no_<option> sets it to 0/false, else 1/true.
+* Later settings of the same key override previous ones - last one wins.
