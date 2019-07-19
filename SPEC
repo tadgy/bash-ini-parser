@@ -1,3 +1,39 @@
+# http://en.wikipedia.org/wiki/INI_file:
+#  * Provides a good explanation of the ini format - use this for docs *
+#  * INI's have 'sections' and 'properties'.  Properties have key = value format *
+#
+#  Case insensitivity:  Case is not changed, unless option used to covert to lower/upper case.
+#  Comments:            Allow ; and # for comments.  Must be on their own line.
+#  Blank lines:         Blank lines are ignored.
+#  Escape chars:        \ at the end of a line will continue it onto next (leading whitespace is removed per normal)
+#  Ordering:            GLOBAL section must be at the top, sections continue until next section or EOF.
+
+#  Duplicate names:     Duplicate property values overwrite previous values.
+#                       Provide an option to abort/error is duplicate is found?
+#                       Add option to merge duplicates separated by octal byte (\036 ??)
+#                       Duplicate sections are merged.  Option to error if dup.
+#  Global properties:   Support.  Add to a GLOBAL section?
+#  Hierarchy:           No hierarchy support.  Each section is own section.
+#  Name/value delim:    Use = by default.  Allow : via option?
+#  Quoted values:       Allow values to be within " and ' to keep literal formatting.
+#  Whitespace:          Whitespace around section labels and []s is removed.
+#                       Whitespace within section labels is kept / translated.
+#                       Whitespace around property names is removed.
+#                       Whitespace within property names is kept as is (spaces squashed - option to override).
+#                       Property values have whitespace between = and data removed.
+#                       Property values are kept as is (no squashing)
+#  http://www.regular-expressions.info/posixbrackets.html
+#  http://ajdiaz.wordpress.com/2008/02/09/bash-ini-parser/
+#  https://github.com/rudimeier/bash_ini_parser/blob/ff9d46a5503bf41b3344af85447e28cbaf95350e/read_ini.sh
+# http://tldp.org/LDP/abs/html/
+# Specs:
+#  [section]            Can be upper/lower/mixed case (set by options)
+#                       Can only include: '-+_. [:alnum:]'
+#                       # Any single or consecutive occurance of '-+_. ' are converted to a *single* _
+#                       # eg:  [foo -+_. bar] becomes [foo_bar] ??
+#                       Any leading/trailing spaces/tabs between the []s and name will be removed.
+
+
 General file format
 -------------------
 * Blank lines are ignored.
@@ -26,3 +62,30 @@ Booleans
 --------
 * no_<option> sets it to 0/false, else 1/true.
 * Later settings of the same key override previous ones - last one wins.
+
+
+
+ToDo
+----
+  --check
+      Check/validate the INI file by running it through the parser.  Testing the
+      ini file will report any problems or syntax errors in the file, but will
+      not set up the environment variables as would happen in normal parsing.
+      Any parse errors are reported to stderr.  When combined with the --debug
+      option, every detail of the parsing process is reported to stderr.
+#  -c, --check-only                   Only validate the ini file, don't parse it into the environment
+# --check                       Parse the file, report any problems, but don't output the code.
+
+  --debug
+      Show full details of the ini file parsing process.  Detail is written to
+      stderr.  Unless --check is used with this option, the parser will still
+      set up the environment as would happen normally,
+# --debug                       Show all details of the parsing process to stderr.  If --check is used, no code is outputted.
+
+# --??                          Set comment characters.  Each char can be used to indicate a comment.
+# --??                          Treat all problems as errors and stop processing at that point.         Need to integrate into code.
+
+
+What happens if:
+ "[ section ]"
+ [ "section" ]

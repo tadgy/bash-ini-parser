@@ -36,6 +36,10 @@ parser_getopts() {
           fi
           shift
         ;;
+      -duplicates-merge|--duplicates-merge)
+          shift
+          DUPLICATES_MERGE=1
+        ;;
       -e|-export|--export)
           shift
           DECLARE_SCOPE="-x"
@@ -97,6 +101,10 @@ parser_getopts() {
             VARIABLE_PREFIX="$1"
           fi
           shift
+        ;;
+      -repeat-sections|--repeat-sections)
+          shift
+          REPEAT_SECTIONS="1"
         ;;
       -textual-booleans|--textual-booleans)
           shift
@@ -169,6 +177,13 @@ parser_help() {
 	      Show version and copyright information.
 
 	Lesser used options:
+          --duplicates-merge
+              If a duplicate key for a specific section is found, the normal behaviour
+              is to have the latter instance of the key overwrite the value of the
+              earlier.  With this option, the keys are merged, and a new, concatinated,
+              value will result.  The concatinated values are not separated by any
+              characters.  Booleans are the exception to this behaviour, as the
+              latter bool will always override an earlier setting.
 	  --global-name <name>
 	      The name of the 'global' section used when defining the arrays.  Only
 	      alphanumerics and _ may be used with this option, which cannot be empty.
@@ -187,6 +202,11 @@ parser_help() {
 	  --no-squash
 	      Do not squash multiple consecutive blanks (which are later translated to
 	      a _) into a single space while reading section names and properties.
+	  --repeat-sections
+	      Usually, if a section is repeated in the INI file its properties are
+	      ignored.  Using this option allows sections to be repeated in the file,
+	      but this does not affect the processing of the keys/values.  Ssee the
+	      '--duplicates-merge' option also.
 	  --textual-booleans
 	      When defining the arrays, boolean keys are given a value of "0" or "1"
 	      (representing 'false' and 'true' respectivly).  With this option the value
@@ -216,8 +236,7 @@ parser_version() {
 
 
 parse_ini() {
-  # Bash v4.4+ is required.
-#  if [[ -z "${BASH_VERSINFO[0]}" ]] || ((BASH_VERSINFO[0] < 4)); then
+  # Bash v4.0+ is required.
   if [[ -z "${BASH_VERSINFO[0]}" ]] || ((BASH_VERSINFO[0] < 4)); then
     echo "${0##*/}: minimum of bash v4 required" >&2
     return 1
@@ -230,7 +249,9 @@ parse_ini() {
   local CONVERT_CHARS="[:blank:].+-"			# Characters from ACCEPTABLE_CHARS in section and key names that should be converted to _.  Must be a valid regex bracket expression.
   local CURRENT_SECTION="global"			# Name used for the 'global' section of the INI file.
   local DECLARE_SCOPE="-g"				# The scope given in the array definitions.  "-g" = global scope, "-l" = local scope, "-x" = export values.
+  local DUPLICATES_MERGE="0"				# Whether to merge latter duplicate key's values with earlier key's values.  0 = don't merge, 1 = do merge.
   local KEYVALUE_DELIM="="				# Delimiter between key and value.  Must be a single character.
+  local REPEAT_SECTIONS="0"				# Whether to allow section names to repeat.  0 = no repeats, 1 = allow repeats.
   local SQUASH_SPACES="1"				# Whether to squash multiple consecutive blanks into a single space.  0 = don't squash, 1 = do squash.
   local TEXTUAL_BOOLEANS="0"				# Whether to use "false" and "true" for booleans.  0 = use "0" and "1", 1 = use "false" and "true".
   local USE_BOOLEANS="1"				# Whether to allow the use of boolean values in the INI file.  0 = don't allow, 1 = do allow.
@@ -238,7 +259,7 @@ parse_ini() {
   local VARIABLE_DELIM="_"				# Delimiter between prefix and section name, unless VARIABLE_PREFIX is empty.
 
   # Variables.
-  local BOOL_VALUE DELIM ERR IGNORE_SECTION=0 INIFD KEY LINE LINENUMBER=0 PREFIX REPLY VALUE
+  local BOOL_VALUE DELIM ERR IGNORE_SECTION=0 INIFD KEY LINE LINENUMBER=0 PREFIX REPLY SECTION SECTIONS_SEEN=() VALUE
   declare INIFILE
 
   # Parse options.
@@ -320,8 +341,7 @@ parse_ini() {
     done
 
     # Ignore the line if it's a comment.
-    # FIXME: Is the printf required here?
-    [[ "$LINE" =~ ^[[:blank:]]*([$(printf "%q" "$COMMENT_CHARS")].*)*$ ]] && continue
+    [[ "$LINE" =~ ^[[:blank:]]*([$COMMENT_CHARS].*)*$ ]] && continue
 
     # Process the line.
     if [[ "${LINE:0:1}" == "[" ]]; then		# Found the beginning of a section definition.
@@ -362,15 +382,28 @@ parse_ini() {
           LINE="${LINE^^}"
         fi
 
-        # Output the associative array declaration.
-        # FIXME: If doing validation only, don't output declaration here.
-        printf "declare %s -A %s%s%s\\n" "$DECLARE_SCOPE" "$PREFIX" "$DELIM" "$LINE"
-
         # Keep track of the current section name.
         CURRENT_SECTION="$LINE"
 
+        # Should we process repeat sections?
+        if ((REPEAT_SECTIONS == 0)); then
+          for SECTION in "${SEEN_SECTIONS[@]}"; do
+            if [[ "$CURRENT_SECTION" == "$SECTION" ]]; then
+              # It's a section we've seen before - don't process it.
+              echo "${0##*/}: line $LINENUMBER: repeated section name - ignoring section" >&2
+              IGNORE_SECTION=1
+              continue 2
+            fi
+          done
+          SEEN_SECTIONS+=("$CURRENT_SECTION")
+        fi
+
         # Reset the ignore flag.
         IGNORE_SECTION=0
+
+        # Output the associative array declaration.
+        # FIXME: If doing validation only, don't output declaration here.
+        printf "declare %s -A %s%s%s\\n" "$DECLARE_SCOPE" "$PREFIX" "$DELIM" "$CURRENT_SECTION"
       fi
     elif ((IGNORE_SECTION == 0)) && [[ "$LINE" != *$KEYVALUE_DELIM* ]]; then		# Process the property definition as if it's a boolean.
       # If the value starts with a " or ' it must end with same.
@@ -402,7 +435,6 @@ parse_ini() {
 
       # Output the associative array element definition.
       if ((USE_BOOLEANS == 1)); then
-        # printf "%s%s%s+=([\"%s\"]=\"%s\")\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$LINE" "$BOOL_VALUE"
         printf "%s%s%s[\"%s\"]=\"%s\"\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$LINE" "$BOOL_VALUE"
       else
         echo "${0##*/}: line $LINENUMBER: key without a value - ignoring property" >&2
@@ -435,12 +467,14 @@ parse_ini() {
 
       # Output the associative array element definition.
       # FIXME: If doing validation only, don't output declaration here.
-      # FIXME: Have an option to have repeat sections/properties over-write previous ones rather than append.
-      printf "%s%s%s[\"%s\"]+=\"%s\"\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$KEY" "$VALUE"
+      if ((DUPLICATES_MERGE == 0)); then
+        printf "%s%s%s[\"%s\"]=\"%s\"\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$KEY" "$VALUE"
+      else
+        printf "%s%s%s[\"%s\"]+=\"%s\"\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$KEY" "$VALUE"
+      fi
     else
       # FIXME: Make this debug output only.
       echo "Skipping line $LINENUMBER" >&2
-      true
     fi
   done
 
