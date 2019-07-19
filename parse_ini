@@ -1,45 +1,5 @@
 #!/bin/bash
 
-# http://en.wikipedia.org/wiki/INI_file:
-#  * Provides a good explanation of the ini format - use this for docs *
-#  * INI's have 'sections' and 'properties'.  Properties have key = value format *
-#
-#  Case insensitivity:	Case is not changed, unless option used to covert to lower/upper case.
-#  Comments:		Allow ; and # for comments.  Must be on their own line.
-#  Blank lines:		Blank lines are ignored.
-#  Escape chars:	\ at the end of a line will continue it onto next (leading whitespace is removed per normal)
-#  Ordering:		GLOBAL section must be at the top, sections continue until next section or EOF.
-
-#  Duplicate names:	Duplicate property values overwrite previous values.
-#			Provide an option to abort/error is duplicate is found?
-#			Add option to merge duplicates separated by octal byte (\036 ??)
-#			Duplicate sections are merged.  Option to error if dup.
-#  Global properties:	Support.  Add to a GLOBAL section?
-#  Hierarchy:		No hierarchy support.  Each section is own section.
-#  Name/value delim:	Use = by default.  Allow : via option?
-#  Quoted values:	Allow values to be within " and ' to keep literal formatting.
-#  Whitespace:		Whitespace around section labels and []s is removed.
-#			Whitespace within section labels is kept / translated.
-#			Whitespace around property names is removed.
-#			Whitespace within property names is kept as is (spaces squashed - option to override).
-#			Property values have whitespace between = and data removed.
-#			Property values are kept as is (no squashing)
-
-#  http://www.regular-expressions.info/posixbrackets.html
-#  http://ajdiaz.wordpress.com/2008/02/09/bash-ini-parser/
-#  https://github.com/rudimeier/bash_ini_parser/blob/ff9d46a5503bf41b3344af85447e28cbaf95350e/read_ini.sh
-# http://tldp.org/LDP/abs/html/
-# Specs:
-#  [section]		Can be upper/lower/mixed case (set by options)
-#			Can only include: '-+_. [:alnum:]'
-#                       # Any single or consecutive occurance of '-+_. ' are converted to a *single* _
-#			# eg:  [foo -+_. bar] becomes [foo_bar] ??
-#			Any leading/trailing spaces/tabs between the []s and name will be removed.
-
-
-# Notes:
-#	* To make env vars available to subsequent programs, use -x|--export.
-
 
 parser_getopts() {
   local DELIM_SET=0
@@ -76,9 +36,44 @@ parser_getopts() {
           fi
           shift
         ;;
-      -h|-help|--help)
+      -e|-export|--export)
+          shift
+          DECLARE_SCOPE="-x"
+        ;;
+      -global-name|--global-name)
+          shift
+          if [[ -z "$1" ]]; then
+            echo "${0##*/}: global name (--global-name) cannot be an empty value" >&2
+            return 1
+          elif [[ "${1:0:1}" =~ [[:digit:]] ]]; then
+            echo "${0##*/}: global name (--global-name) cannot begin with a number" >&2
+            return 1
+          elif [[ "$1" =~ [^[:alnum:]_] ]]; then
+            echo "${0##*/}: only alphanumerics and _ allowed for global name (--global-name)" >&2
+          else
+            CURRENT_SECTION="$1"
+          fi
+          shift
+        ;;
+      -h|-\?|-help|--help)
           parser_help
-          return 0
+          return 2
+        ;;
+      -l|-local|--local)
+          shift
+          DECLARE_SCOPE="-l"
+        ;;
+      -lowercase|--lowercase)
+          shift
+          CONVERT_CASE="-1"
+        ;;
+      -no-booleans|--no-booleans)
+          shift
+          USE_BOOLEANS="0"
+        ;;
+      -no-squash|--no-squash)
+          shift
+          SQUASH_SPACES=0
         ;;
       -p|-prefix|--prefix)
           shift
@@ -96,16 +91,24 @@ parser_getopts() {
             echo "${0##*/}: prefix (-p) cannot begin with a number" >&2
             return 1
           elif [[ "$1" =~ [^[:alnum:]_] ]]; then
-            echo "${0##*/}: invalid characters in prefix (-p) - alphanumerics and _ only" >&2
+            echo "${0##*/}: only  alphanumerics and _ allowed for prefix (-p)" >&2
             return 1
           else
             VARIABLE_PREFIX="$1"
           fi
           shift
         ;;
+      -textual-booleans|--textual-booleans)
+          shift
+          TEXTUAL_BOOLEANS="1"
+        ;;
+      -uppercase|--uppercase)
+          shift
+          CONVERT_CASE="1"
+        ;;
       -v|-version|--version)
           parser_version
-          return 0
+          return 2
         ;;
       --)
           # Stop option processing.
@@ -137,93 +140,64 @@ parser_help() {
 	Usage: ${0##*/} [options] <INI file>
 	Parse an INI-style file into array assignments which can be 'eval'ed into Bash.
 
-	Options:
+	Commonly used options:
 	  -b <char>, --bound <char>
 	      The bound character which delimits the key from the value in a property
 	      line of the INI file.  The default is "=".  This must be a single
 	      character and cannot be empty value.
 	  -d <char(s)>, --delim <char(s)>
-	      The character(s) to use as a delimiter between the prefix and section name
-	      when defining the arrays.  The default is "_", except where prefix is set
-	      to an empty value, in which case the default is also empty.  Only
-	      alphanumerics and _ may be used with this option, and it may not begin
-	      with a number if prefix is empty.  To use no delimintaor, use '-d ""'.
+	      The character(s) (which may be an empty value) to use as a delimiter
+	      between the prefix and section name when defining the arrays.  The
+	      default is "_", except where prefix is set to an empty value, in which
+	      case the default is also empty.  Only alphanumerics and _ may be used with
+	      this option, and it may not begin with a number if prefix is empty.  The
+	      delimiter may be converted to upper or lower case depending upon the use
+	      of '--uppercase' or '--lowercase'.
+          -e, --export
+              When declaring the arrays, export them to the environment.
+	  -h, -?, --help
+	      Show (this) help.
+          -l, --local
+              Declare the arrays as being local in scope, instead of the default of
+              global scope.
 	  -p <prefix>, --prefix <prefix>
 	      The prefix of all the variables set when defining the arrays.  The default
 	      is "INI".  An empty prefix (denoted by "") implies '-d ""', but this can
 	      be overridden by explicitly specifying a delimiter with '-d'.  Only
 	      alphanumerics and _ may be used with this option, and it may not be empty
-	      when delim ('-d) begins with a number.
+	      when delim ('-d') begins with a number.
+	  -v, --version
+	      Show version and copyright information.
 
-  -i, --implied-boolean
-      Options usually require a value (after the =) in order to be set.
-      With this option, any key without a value contained in the ini file
-      if assumed to be a boolean 'true' and set accordingly.  Likewise, any key
-      preceeded with 'no_' (eg: no_foo) will set the value of 'foo' to boolean 'false'.
-      Cannot be used with --no-boolean.
-  -c, --case-sensitive
-      Be case sensitive with section names and properties.
-      Section names and property names will be used as is - no translation.
--d, --delim
-The delimiter between the key and value.  Must be a single character.  Default =
-  -g, --global-name <name>
-      INI files can contain an optional implied "global" section - where there
-      are property names/values before any [section] header.  This option
-      specified what section name the implied "global" section should be given
-      in the environment variables which are set.  The default is 'global'.
-
-  -l, --lowercase
-      Usually, environment variables are converted to all uppercase before being set.
-      This option forces all environment variables to be converted to lowercase instead.
-      Note: This only effects the environment variable set with -e, and the section names
-      read from the ini file.  Options are ??????????????????????????????????????
-  -x, --export
-      Export environment variables.
-
-  --no-boolean
-      Don't parse 'yes', 'true', 'on', 'no', 'false', 'off' into the corresponding boolean
-      values, and set the options strictly as is.  Incompatible with -i.
-  --no-squash
-      Do not squash multiple consecutive occurances of punctuation characters
-      into a single _ when parsing section names and options.  With this option
-      'foo.-_bar' would become 'foo___bar' rather than 'foo_bar'.
-  --no-duplicates
-      If a duplicate section name or option name is found, report error and stop.
-      Usually sections with the same name will have their options merged, and
-      duplicate option values will overwrite previous ones.
-
-#  -c, --check-only                   Only validate the ini file, don't parse it into the environment
-  --check
-      Check/validate the INI file by running it through the parser.  Testing the
-      ini file will report any problems or syntax errors in the file, but will
-      not set up the environment variables as would happen in normal parsing.
-      Any parse errors are reported to stderr.  When combined with the --debug
-      option, every detail of the parsing process is reported to stderr.
-  --debug
-      Show full details of the ini file parsing process.  Detail is written to
-      stderr.  Unless --test is used with this option, the parser will still
-      set up the environment as would happen normally,
-  -h, --help
-      Show (this) help.
-  -v, --version
-      Show version and copyright information.
-  #  -b, --booleans                     Allow 'yes', 'true', 'on', 'no', 'false', 'off' to be used as values
-  #                                     and interpited as boolean values.  'yes', 'true', 'on' set option value to "1".
-  #                                     'no', 'false', 'off' set option value to "0".
-  #  -?, --????                         Interprite the presense of an option name without any value as a boolean
-  #                                     'true', and no_<option> as a boolean 'false', setting the option value
-  #                                     to 1 or 0 accordingly.  eg: 'foo' in the ini file would set option foo = 1
-  #                                     and 'no_foo' would set foo = 0.
-  #                                     ???? Implies -b ????
-
-# --check			Parse the file, report any problems, but don't output the code.
-# --debug			Show all details of the parsing process to stderr.  If --check is used, no code is outputted.
-# --??				Declare the arrays as exported.
-# --??				Declare the arrays as global (the default).
-# --??				Declare the arrays as local.
-# --??				Set comment characters.  Each char can be used to indicate a comment.
-# --??				Treat all problems as errors and stop processing at that point.		Need to integrate into code.
-# --??				Change bools from 0/1 to false/true???
+	Lesser used options:
+	  --global-name <name>
+	      The name of the 'global' section used when defining the arrays.  Only
+	      alphanumerics and _ may be used with this option, which cannot be empty.
+	      The name may not begin with a number, and may be converted to upper or
+	      lower case depending upon the use of '--uppercase' or '--lowercase'.
+	  --lowercase
+	      When defining the arrays, the case of the prefix ('-p') name, delimiter
+	      and section name is kept as set.  With this option all items are converted
+	      to lower case.  The case of the propertie's keys/values is not affected.
+	  --no-booleans
+	      Normally, the parser interprites the presence of a key without an
+	      associated value as a boolean.  Keys which are proceeded by "no_" are
+	      given a boolean 'false' value, while keys without a "no_" are given a
+	      'true' value.  With this option, the presence of a key without a value is
+	      considered a syntax error in the INI file.
+	  --no-squash
+	      Do not squash multiple consecutive blanks (which are later translated to
+	      a _) into a single space while reading section names and properties.
+	  --textual-booleans
+	      When defining the arrays, boolean keys are given a value of "0" or "1"
+	      (representing 'false' and 'true' respectivly).  With this option the value
+	      of the key will be the text "false" or "true" instead.  Ignored when
+	      '--no-booleans' is in use.
+	  --uppercase
+	      When defining the arrays, the case of the prefix ('-p') name, delimiter
+	      and section name is kept as set.  With this option all items are converted
+	      to upper case.  The case of the propertie's keys/values is not affected.
+	Option processing ceases with the first non-option argument, or "--".
 EOF
 }
 
@@ -243,7 +217,8 @@ parser_version() {
 
 
 parse_ini() {
-  # Bash v4.1+ is required.
+  # Bash v4.4+ is required.
+#  if [[ -z "${BASH_VERSINFO[0]}" ]] || ((BASH_VERSINFO[0] < 4)); then
   if [[ -z "${BASH_VERSINFO[0]}" ]] || ((BASH_VERSINFO[0] < 4)); then
     echo "${0##*/}: minimum of bash v4 required" >&2
     return 1
@@ -255,17 +230,28 @@ parse_ini() {
   local CONVERT_CASE="0"				# Whether to keep or convert section and key names to upper or loweer case.  -1 = covert to lowercase, 0 = keep case, 1 = convert to uppercase.
   local CONVERT_CHARS="[:blank:].+-"			# Characters from ACCEPTABLE_CHARS in section and key names that should be converted to _.  Must be a valid regex bracket expression.
   local CURRENT_SECTION="global"			# Name used for the 'global' section of the INI file.
-  local KEYVALUE_DELIM="="				# Delimintator between key and value.  Must be a single character.
+  local DECLARE_SCOPE="-g"				# The scope given in the array definitions.  "-g" = global scope, "-l" = local scope, "-x" = export values.
+  local KEYVALUE_DELIM="="				# Delimiter between key and value.  Must be a single character.
   local SQUASH_SPACES="1"				# Whether to squash multiple consecutive blanks into a single space.  0 = don't squash, 1 = do squash.
+  local TEXTUAL_BOOLEANS="0"				# Whether to use "false" and "true" for booleans.  0 = use "0" and "1", 1 = use "false" and "true".
+  local USE_BOOLEANS="1"				# Whether to allow the use of boolean values in the INI file.  0 = don't allow, 1 = do allow.
   local VARIABLE_PREFIX="INI"				# Prefix for all variables.  Note: case is not changed, even with CONVERT_CASE set.
   local VARIABLE_DELIM="_"				# Delimiter between prefix and section name, unless VARIABLE_PREFIX is empty.
 
   # Variables.
-  local BOOL_VALUE CURRENT_SECTION IGNORE_SECTION=0 INIFD KEY LINE LINENUMBER=0 REPLY VALUE
+  local BOOL_VALUE DELIM ERR IGNORE_SECTION=0 INIFD KEY LINE LINENUMBER=0 PREFIX REPLY VALUE
   declare INIFILE
 
   # Parse options.
-  parser_getopts "$@" || return $?
+  parser_getopts "$@"
+  ERR=$?
+  if ((ERR == 1)); then
+    # And error occured.
+    return 1
+  elif ((ERR == 2)); then
+    # Help/version was showed, exit sucessfully.
+    return 0
+  fi
 
   # If reading from stdin, don't try to open the FD as it's already open.
   if [[ "$INIFILE" == "-" ]]; then
@@ -293,11 +279,26 @@ parse_ini() {
   # Extglob is required.
   shopt -s extglob
 
+  # Convert case, if required.
+  if ((CONVERT_CASE == -1)); then
+    # Covert to lowercase.
+    PREFIX="${VARIABLE_PREFIX,,}"
+    DELIM="${VARIABLE_DELIM,,}"
+    CURRENT_SECTION="${CURRENT_SECTION,,}"
+  elif ((CONVERT_CASE == 1)); then
+    # Convert to uppercase.
+    PREFIX="${VARIABLE_PREFIX^^}"
+    DELIM="${VARIABLE_DELIM^^}"
+    CURRENT_SECTION="${CURRENT_SECTION^^}"
+  else
+    # Don't convert.
+    PREFIX="$VARIABLE_PREFIX"
+    DELIM="$VARIABLE_DELIM"
+  fi
+
   # Output the 'global' section definition.
   # FIXME: If doing validation only, don't output declaration here.
-  # FIXME: Need to handle export and local options here.
-  # FIXME: Handle an empty prefix here, and delim as per key/value printf.
-  printf "declare -g -A %s%s%s\\n" "$VARIABLE_PREFIX" "$VARIABLE_DELIM" "$CURRENT_SECTION"
+  printf "declare %s -A %s%s%s\\n" "$DECLARE_SCOPE" "$PREFIX" "$DELIM" "$CURRENT_SECTION"
 
   # Parse the INI file.
   while :; do
@@ -320,6 +321,7 @@ parse_ini() {
     done
 
     # Ignore the line if it's a comment.
+    # FIXME: Is the printf required here?
     [[ "$LINE" =~ ^[[:blank:]]*([$(printf "%q" "$COMMENT_CHARS")].*)*$ ]] && continue
 
     # Process the line.
@@ -363,8 +365,7 @@ parse_ini() {
 
         # Output the associative array declaration.
         # FIXME: If doing validation only, don't output declaration here.
-        # FIXME: Need to handle export and local options here.
-        printf "declare -g -A %s%s%s\\n" "$VARIABLE_PREFIX" "$VARIABLE_DELIM" "$LINE"
+        printf "declare %s -A %s%s%s\\n" "$DECLARE_SCOPE" "$PREFIX" "$DELIM" "$LINE"
 
         # Keep track of the current section name.
         CURRENT_SECTION="$LINE"
@@ -387,13 +388,27 @@ parse_ini() {
       # Determine the boolean value.
       if [[ "${LINE:0:3}" == "no_" ]]; then
         LINE="${LINE:3:${#LINE} - 1}"
-        BOOL_VALUE=0
+        if ((TEXTUAL_BOOLEANS == 0)); then
+          BOOL_VALUE=0
+        else
+          BOOL_VALUE="false"
+        fi
       else
-        BOOL_VALUE=1
+        if ((TEXTUAL_BOOLEANS == 0)); then
+          BOOL_VALUE=1
+        else
+          BOOL_VALUE="true"
+        fi
       fi
 
       # Output the associative array element definition.
-      printf "%s%s%s+=([\"%s\"]=\"%s\")\\n" "$VARIABLE_PREFIX" "${VARIABLE_PREFIX:+$VARIABLE_DELIM}" "$CURRENT_SECTION" "$LINE" "$BOOL_VALUE"
+      if ((USE_BOOLEANS == 1)); then
+        # printf "%s%s%s+=([\"%s\"]=\"%s\")\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$LINE" "$BOOL_VALUE"
+        printf "%s%s%s[\"%s\"]=\"%s\"\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$LINE" "$BOOL_VALUE"
+      else
+        echo "${0##*/}: line $LINENUMBER: key without a value - ignoring property"
+        continue
+      fi
     elif ((IGNORE_SECTION == 0)); then		# Process the property definition as a key/value pair.
       # Remove trailing whitespace from key part.
       LINE="${LINE/+([[:blank:]])$KEYVALUE_DELIM/$KEYVALUE_DELIM}"
@@ -404,6 +419,9 @@ parse_ini() {
       # Extract the key and the value.
       KEY="${LINE%%$KEYVALUE_DELIM*}"
       VALUE="${LINE#*$KEYVALUE_DELIM}"
+
+      # Squash multiple consecutive blanks into a single space.
+      ((SQUASH_SPACES == 1)) && KEY="${KEY//+([[:blank:]])/ }"
 
       # If the value starts with a " or ' it must end with same.
       if [[ "${VALUE:0:1}" =~ [\"\'] ]]; then
@@ -418,42 +436,27 @@ parse_ini() {
 
       # Output the associative array element definition.
       # FIXME: If doing validation only, don't output declaration here.
-      # FIXME: Need to handle export and local options here.
       # FIXME: Need to make sure multiple keys with the same name add to the element, not replace it.
       # FIXME: Have an option to have repeat sections/properties over-write previous ones rather than append.
-      # FIXME: Need to handle bash <4.4 (by CLI option): declare -n foo="$prefix$delim$section"; $prefix$delim$section["$key"]="${foo["$key"]}$value"
+      # FIXME: Need to handle bash <4.4 (by CLI option?): declare -n foo="$prefix$delim$section"; $prefix$delim$section["$key"]="${foo["$key"]}$value"
       # For bash 4.4+.
-      printf "%s%s%s+=([\"%s\"]+=\"%s\")\\n" "$VARIABLE_PREFIX" "${VARIABLE_PREFIX:+$VARIABLE_DELIM}" "$CURRENT_SECTION" "$KEY" "$VALUE"
+      # printf "%s%s%s+=([\"%s\"]+=\"%s\")\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$KEY" "$VALUE"
+      # For bash 4.0+
+      printf "%s%s%s[\"%s\"]+=\"%s\"\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$KEY" "$VALUE"
     else
       # FIXME: Make this debug output only.
       echo "Skipping line $LINENUMBER"
       true
     fi
-
-# printf "<%s = %s>\\n" "$KEY" "$VALUE"
-
-#  if first non-whitespace char after the first = is " or ', check the last non-whitespace char on the line.
-#    if that character is a matching " or ', skip to normal processing.
-#    if that character doesn't match the opening " or ', go to continued line processing
-#  else (no opening " or ') check the last non-whitespace char on the line; if its a \  (line continuation marker)
-#    go to continued line processing
-# fi
-
-# Continued line processing
-# Notes: If within a " or ' block, keep whitespace as entered - don't strip from begining of line.
-#	 If here from a continueation marker, remove leading whitespace.
-#	 Will need a flag to show if we're looking for an ending " or '
-
-# Normal processing:
-# Escape chars?
-
-  # Close file descriptor for ini file
-
-  # clean up the environment
-  # IFS=$INI_SAVED_IFS
-  # Remove any variables begining INI_
-
   done
+
+  # Close file descriptor for INI file.
+  if ((INIFD != 1)); then
+    exec {INIFD}<&-
+  fi
+
+  # Clean up the environment.
+  unset INIFILE
 }
 
 parse_ini "$@"
