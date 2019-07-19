@@ -343,25 +343,80 @@ parse_ini() {
     # Ignore the line if it's a comment.
     [[ "$LINE" =~ ^[[:blank:]]*([$COMMENT_CHARS].*)*$ ]] && continue
 
+    # Strip the trailing whitespace from the line (the leading whitespace has already been stripped by read).
+    LINE="${LINE/%*([[:blank:]])/}"
+
+printf "<%s>\n" "$LINE"
+    # Quotes must be balanced.
+    if { [[ "$LINE" =~ ^[[:blank:]]*[\"\'][[:blank:]]*\[ ]] && [[ ! "$LINE" =~ \][[:blank:]]*[\"\'][[:blank:]]*$ ]]; } || \
+        { [[ "$LINE" =~ \][[:blank:]]*[\"\'][[:blank:]]*$ ]] && [[ ! "$LINE" =~ ^[[:blank:]]*[\"\'][[:blank:]]*\[ ]]; }; then
+      echo "${0##*/}: line $LINENUMBER: unmatched quotes - skipping section" >&2
+      IGNORE_SECTION=1
+      continue
+    elif [[ "$LINE" =~ ^[[:blank:]]*[\"\'][[:blank:]]*\[ ]] && [[ "$LINE" =~ \][[:blank:]]*[\"\'][[:blank:]]*$ ]]; then
+      # Strip the quotes and whitespace - they're not needed.
+      LINE="${LINE/#*([[:blank:]])*([\"\'])*([[:blank:]])[/[}"
+      LINE="${LINE/%]*([[:blank:]])*([\"\'])*([[:blank:]])/]}"
+printf "*%s*\n" "$LINE"
+    elif { [[ "$LINE" =~ ^[[:blank:]]*[\"\'] ]] && [[ ! "$LINE" =~ [\"\'][[:blank:]]*$KEYVALUE_DELIM ]]; } || \
+        { [[ "$LINE" =~ ${KEYVALUE_DELIM}[[:blank:]]*[\"\'] ]] && [[ ! "$LINE" =~ [\"\'][[:blank:]]*$ ]]; }; then
+      echo "${0##*/}: line $LINENUMBER: unmatched quotes - skipping property" >&2
+      continue
+    elif [[ "$LINE" =~ ^[[:blank:]]*[\"\'] ]] || [[ "$LINE" =~ [\"\'][[:blank:]]*$ ]]; then
+      # Strip the quotes and whitespace - they're not needed.
+      LINE="${LINE/#*([[:blank:]])*([\"\'])*([[:blank:]])}"
+      LINE="${LINE/*([\"\'])*([[:blank:]])$KEYVALUE_DELIM*([[:blank:]])*([\"\'])/$KEYVALUE_DELIM}"
+      LINE="${LINE/%*([[:blank:]])*([\"\'])*([[:blank:]])}"
+printf "|%s|\n" "$LINE"
+    elif [[ "$LINE" =~ ^[[:blank:]]*.*[[:blank:]]*$KEYVALUE_DELIM[[:blank:]]*.*[[:blank:]] ]]; then
+    echo "valid"
+    else
+      echo "${0##*/}: line $LINENUMBER: invalid formatting - skipping line" >&2
+      continue
+    fi
+
+
+ #   exit
+
+#    if [[ "${LINE:0:1}" =~ [\"\'] ]]; then
+#      if [[ "${LINE:0:1}" == "${LINE: -1:1}" ]]; then
+#        # Strip the quotes as they're not needed.
+#        LINE="${LINE:1:-1}"
+#      else
+#        echo "${0##*/}: line $LINENUMBER: unmatched quotes - skipping property" >&2
+#        continue
+#      fi
+#    fi
+
     # Process the line.
-    if [[ "${LINE:0:1}" == "[" ]]; then		# Found the beginning of a section definition.
+#    if [[ "${LINE:0:1}" == "[" ]]; then		# Found the beginning of a section definition.
+#      # Check the format of the section definition.
+#      if [[ "${LINE: -1:1}" != "]" ]]; then
+    if [[ "$LINE" =~ ^[[:blank:]]*\[ ]]; then		# Found the beginning of a section definition.
       # Check the format of the section definition.
-      if [[ "${LINE: -1:1}" != "]" ]]; then
-        echo "${0##*/}: line $LINENUMBER: unmatched [ in section definition - ignoring section" >&2
+      if [[ ! "$LINE" =~ \][[:blank:]]*$ ]]; then
+        echo "${0##*/}: line $LINENUMBER: unmatched [ in section definition - skipping section" >&2
         IGNORE_SECTION=1
         continue
       elif [[ "${LINE:1:-1}" =~ [^$ACCEPTABLE_CHARS\[\]]* ]]; then
-        echo "${0##*/}: line $LINENUMBER: invalid characters in section definition - ignoring section" >&2
+#printf "<%s>\n" "$LINE"
+#exit
+        echo "${0##*/}: line $LINENUMBER: invalid characters in section definition - skipping section" >&2
         IGNORE_SECTION=1
         continue
       elif [[ -z "${LINE:1:-1}" ]] || [[ "${LINE:1:-1}" =~ ^[[:blank:]]+$ ]]; then
-        echo "${0##*/}: line $LINENUMBER: empty section definition - ignoring section" >&2
+        echo "${0##*/}: line $LINENUMBER: empty section definition - skipping section" >&2
         IGNORE_SECTION=1
         continue
       else
         # Strip the []s and any whitespace between the []s and the section name.
-        LINE="${LINE/#\[*([[:space:]])/}"
-        LINE="${LINE/%*([[:space:]])\]/}"
+#        LINE="${LINE/#\[*([[:blank:]])/}"
+#        LINE="${LINE/%*([[:blank:]])\]/}"
+#printf "<%s>\n" "$LINE"
+        LINE="${LINE/#*([[:blank:]])\[*([[:blank:]])/}"
+#printf "<%s>\n" "$LINE"
+#exit
+#        LINE="${LINE/%*([[:blank:]])\]*([[:blank:]])/}"
 
         # Squash multiple consecutive blanks into a single space.
         ((SQUASH_SPACES == 1)) && LINE="${LINE//+([[:blank:]])/ }"
@@ -387,15 +442,15 @@ parse_ini() {
 
         # Should we process repeat sections?
         if ((REPEAT_SECTIONS == 0)); then
-          for SECTION in "${SEEN_SECTIONS[@]}"; do
+          for SECTION in "${SECTIONS_SEEN[@]}"; do
             if [[ "$CURRENT_SECTION" == "$SECTION" ]]; then
               # It's a section we've seen before - don't process it.
-              echo "${0##*/}: line $LINENUMBER: repeated section name - ignoring section" >&2
+              echo "${0##*/}: line $LINENUMBER: repeated section name - skipping section" >&2
               IGNORE_SECTION=1
               continue 2
             fi
           done
-          SEEN_SECTIONS+=("$CURRENT_SECTION")
+          SECTIONS_SEEN+=("$CURRENT_SECTION")
         fi
 
         # Reset the ignore flag.
@@ -406,17 +461,6 @@ parse_ini() {
         printf "declare %s -A %s%s%s\\n" "$DECLARE_SCOPE" "$PREFIX" "$DELIM" "$CURRENT_SECTION"
       fi
     elif ((IGNORE_SECTION == 0)) && [[ "$LINE" != *$KEYVALUE_DELIM* ]]; then		# Process the property definition as if it's a boolean.
-      # If the value starts with a " or ' it must end with same.
-      if [[ "${LINE:0:1}" =~ [\"\'] ]]; then
-        if [[ "${LINE:0:1}" == "${VALUE: -1:1}" ]]; then
-          # Strip the quotes as they're not needed.
-          LINE="${LINE:1:-1}"
-        else
-          echo "${0##*/}: line $LINENUMBER: unmatched quotes - ignoring property" >&2
-          continue
-        fi
-      fi
-
       # Determine the boolean value.
       if [[ "${LINE:0:3}" == "no_" ]]; then
         LINE="${LINE:3:${#LINE} - 1}"
@@ -437,7 +481,7 @@ parse_ini() {
       if ((USE_BOOLEANS == 1)); then
         printf "%s%s%s[\"%s\"]=\"%s\"\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$LINE" "$BOOL_VALUE"
       else
-        echo "${0##*/}: line $LINENUMBER: key without a value - ignoring property" >&2
+        echo "${0##*/}: line $LINENUMBER: key without a value - skipping property" >&2
         continue
       fi
     elif ((IGNORE_SECTION == 0)); then		# Process the property definition as a key/value pair.
@@ -455,15 +499,15 @@ parse_ini() {
       ((SQUASH_SPACES == 1)) && KEY="${KEY//+([[:blank:]])/ }"
 
       # If the value starts with a " or ' it must end with same.
-      if [[ "${VALUE:0:1}" =~ [\"\'] ]]; then
-        if [[ "${VALUE:0:1}" == "${VALUE: -1:1}" ]]; then
-          # Strip the quotes as they're not needed.
-          VALUE="${VALUE:1:-1}"
-        else
-          echo "${0##*/}: line $LINENUMBER: unmatched quotes - ignoring property" >&2
-          continue
-        fi
-      fi
+#      if [[ "${VALUE:0:1}" =~ [\"\'] ]]; then
+#        if [[ "${VALUE:0:1}" == "${VALUE: -1:1}" ]]; then
+#          # Strip the quotes as they're not needed.
+#          VALUE="${VALUE:1:-1}"
+#        else
+#          echo "${0##*/}: line $LINENUMBER: unmatched quotes - skipping property" >&2
+#          continue
+#        fi
+#      fi
 
       # Output the associative array element definition.
       # FIXME: If doing validation only, don't output declaration here.
