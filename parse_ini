@@ -111,11 +111,10 @@ parser_getopts() {
           return 2
         ;;
       --)
-          # Stop option processing.
           break
         ;;
       --*|-*)
-          echo "${0##*/}: invalid option: $1"
+          echo "${0##*/}: invalid option: $1" >&2
           return 1
         ;;
       *)
@@ -153,13 +152,13 @@ parser_help() {
 	      this option, and it may not begin with a number if prefix is empty.  The
 	      delimiter may be converted to upper or lower case depending upon the use
 	      of '--uppercase' or '--lowercase'.
-          -e, --export
-              When declaring the arrays, export them to the environment.
+	  -e, --export
+	      When declaring the arrays, export them to the environment.
 	  -h, -?, --help
 	      Show (this) help.
-          -l, --local
-              Declare the arrays as being local in scope, instead of the default of
-              global scope.
+	  -l, --local
+	      Declare the arrays as being local in scope, instead of the default of
+	      global scope.
 	  -p <prefix>, --prefix <prefix>
 	      The prefix of all the variables set when defining the arrays.  The default
 	      is "INI".  An empty prefix (denoted by "") implies '-d ""', but this can
@@ -198,7 +197,7 @@ parser_help() {
 	      and section name is kept as set.  With this option all items are converted
 	      to upper case.  The case of the propertie's keys/values is not affected.
 	Option processing ceases with the first non-option argument, or "--".
-EOF
+	EOF
 }
 
 parser_version() {
@@ -380,7 +379,7 @@ parse_ini() {
           # Strip the quotes as they're not needed.
           LINE="${LINE:1:-1}"
         else
-          echo "${0##*/}: line $LINENUMBER: unmatched quotes - ignoring property"
+          echo "${0##*/}: line $LINENUMBER: unmatched quotes - ignoring property" >&2
           continue
         fi
       fi
@@ -406,7 +405,7 @@ parse_ini() {
         # printf "%s%s%s+=([\"%s\"]=\"%s\")\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$LINE" "$BOOL_VALUE"
         printf "%s%s%s[\"%s\"]=\"%s\"\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$LINE" "$BOOL_VALUE"
       else
-        echo "${0##*/}: line $LINENUMBER: key without a value - ignoring property"
+        echo "${0##*/}: line $LINENUMBER: key without a value - ignoring property" >&2
         continue
       fi
     elif ((IGNORE_SECTION == 0)); then		# Process the property definition as a key/value pair.
@@ -429,23 +428,18 @@ parse_ini() {
           # Strip the quotes as they're not needed.
           VALUE="${VALUE:1:-1}"
         else
-          echo "${0##*/}: line $LINENUMBER: unmatched quotes - ignoring property"
+          echo "${0##*/}: line $LINENUMBER: unmatched quotes - ignoring property" >&2
           continue
         fi
       fi
 
       # Output the associative array element definition.
       # FIXME: If doing validation only, don't output declaration here.
-      # FIXME: Need to make sure multiple keys with the same name add to the element, not replace it.
       # FIXME: Have an option to have repeat sections/properties over-write previous ones rather than append.
-      # FIXME: Need to handle bash <4.4 (by CLI option?): declare -n foo="$prefix$delim$section"; $prefix$delim$section["$key"]="${foo["$key"]}$value"
-      # For bash 4.4+.
-      # printf "%s%s%s+=([\"%s\"]+=\"%s\")\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$KEY" "$VALUE"
-      # For bash 4.0+
       printf "%s%s%s[\"%s\"]+=\"%s\"\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$KEY" "$VALUE"
     else
       # FIXME: Make this debug output only.
-      echo "Skipping line $LINENUMBER"
+      echo "Skipping line $LINENUMBER" >&2
       true
     fi
   done
