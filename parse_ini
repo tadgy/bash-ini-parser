@@ -7,55 +7,50 @@ parser_getopts() {
   while [[ ! -z "$1" ]]; do
     case "$1" in
       -b|-bound|--bound)
-          shift
-          if [[ -z "$1" ]]; then
+          if [[ -z "$2" ]]; then
             echo "${0##*/}: bound (-b) cannot be an empty value" >&2
             return 1
-          elif ((${#1} > 1)); then
+          elif ((${#2} > 1)); then
             echo "${0##*/}: bound (-b) must be a single character" >&2
             return 1
           else
-            KEYVALUE_DELIM="$1"
+            KEYVALUE_DELIM="$2"
           fi
           shift
         ;;
       -d|-delim|--delim)
-          shift
-          if [[ -z "$1" ]]; then
+          if [[ -z "$2" ]]; then
             VARIABLE_DELIM=""
             DELIM_SET=1
-          elif [[ -z "$VARIABLE_PREFIX" ]] && [[ "${1:0:1}" =~ [[:digit:]] ]]; then
+          elif [[ -z "$VARIABLE_PREFIX" ]] && [[ "${2:0:1}" =~ [[:digit:]] ]]; then
             echo "${0##*/}: delim (-d) cannot begin with a number when prefix (-p) is empty" >&2
             return 1
-          elif [[ "$1" =~ [^[:alnum:]_] ]]; then
+          elif [[ "$2" =~ [^[:alnum:]_] ]]; then
             echo "${0##*/}: invalid characters in delim (-d) - alphanumerics and _ only" >&2
             return 1
           else
-            VARIABLE_DELIM="$1"
+            VARIABLE_DELIM="$2"
             DELIM_SET=1
           fi
           shift
         ;;
       -duplicates-merge|--duplicates-merge)
-          shift
           DUPLICATES_MERGE=1
         ;;
       -e|-export|--export)
-          shift
           DECLARE_SCOPE="-x"
         ;;
       -global-name|--global-name)
-          shift
-          if [[ -z "$1" ]]; then
+          if [[ -z "$2" ]]; then
             echo "${0##*/}: global name (--global-name) cannot be an empty value" >&2
             return 1
-          elif [[ "${1:0:1}" =~ [[:digit:]] ]]; then
+          elif [[ "${2:0:1}" =~ [[:digit:]] ]]; then
             echo "${0##*/}: global name (--global-name) cannot begin with a number" >&2
             return 1
-          elif [[ "$1" =~ [^[:alnum:]_] ]]; then
+          elif [[ "$2" =~ [^[:alnum:]_] ]]; then
             echo "${0##*/}: only alphanumerics and _ allowed for global name (--global-name)" >&2
           else
-            CURRENT_SECTION="$1"
+            CURRENT_SECTION="$2"
           fi
           shift
         ;;
@@ -64,24 +59,19 @@ parser_getopts() {
           return 2
         ;;
       -l|-local|--local)
-          shift
           DECLARE_SCOPE="-l"
         ;;
       -lowercase|--lowercase)
-          shift
           CONVERT_CASE="-1"
         ;;
       -no-booleans|--no-booleans)
-          shift
           USE_BOOLEANS="0"
         ;;
       -no-squash|--no-squash)
-          shift
           SQUASH_SPACES=0
         ;;
       -p|-prefix|--prefix)
-          shift
-          if [[ -z "$1" ]]; then
+          if [[ -z "$2" ]]; then
             if [[ "${VARIABLE_DELIM:0:1}" =~ [[:digit:]] ]]; then
               echo "${0##*/}: prefix (-p) cannot be empty if delim (-d) begins with a number" >&2
               return 1
@@ -91,27 +81,24 @@ parser_getopts() {
                 VARIABLE_DELIM=""
               fi
             fi
-          elif [[ "${1:0:1}" =~ [[:digit:]] ]]; then
+          elif [[ "${2:0:1}" =~ [[:digit:]] ]]; then
             echo "${0##*/}: prefix (-p) cannot begin with a number" >&2
             return 1
-          elif [[ "$1" =~ [^[:alnum:]_] ]]; then
+          elif [[ "$2" =~ [^[:alnum:]_] ]]; then
             echo "${0##*/}: only  alphanumerics and _ allowed for prefix (-p)" >&2
             return 1
           else
-            VARIABLE_PREFIX="$1"
+            VARIABLE_PREFIX="$2"
           fi
           shift
         ;;
       -repeat-sections|--repeat-sections)
-          shift
           REPEAT_SECTIONS="1"
         ;;
       -textual-booleans|--textual-booleans)
-          shift
           TEXTUAL_BOOLEANS="1"
         ;;
       -uppercase|--uppercase)
-          shift
           CONVERT_CASE="1"
         ;;
       -v|-version|--version)
@@ -129,6 +116,7 @@ parser_getopts() {
           break
         ;;
     esac
+    shift
   done
 
   # Make sure we have an INI file after all the options are removed.
