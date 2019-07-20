@@ -1,4 +1,11 @@
 #!/bin/bash
+# Bash INI file parser v0.1.0.
+# Copyright (C) 2019 Darren 'Tadgy' Austin <darren (at) afterdark.org.uk>.
+# Licensed under the terms of the GNU General Public Licence version 3.
+#
+# This program comes with ABSOLUTELY NO WARRANTY.  For details and a full copy of
+# the license terms, see: <http://gnu.org/licenses/gpl.html>.  This is free
+# software - you can modify and redistribute it under the terms of the GPL v3.
 
 
 parser_getopts() {
@@ -132,11 +139,13 @@ parser_getopts() {
   fi
 }
 
+
 parser_help() {
         #........1.........2.........3.........4.........5.........6.........7.........8
   cat <<-EOF
 	Usage: ${0##*/} [options] <INI file>
 	Parse an INI-style file into array assignments which can be 'eval'ed into Bash.
+	Example usage in bash script: eval "\$(${0##*/} example.ini)"
 
 	Commonly used options:
 	  -b <char>, --bound <char>
@@ -215,6 +224,7 @@ parser_help() {
 	EOF
 }
 
+
 parser_version() {
         #........1.........2.........3.........4.........5.........6.........7.........8
   cat <<-EOF
@@ -227,7 +237,6 @@ parser_version() {
 	software - you can modify and redistribute it under the terms of the GPL v3.
 	EOF
 }
-
 
 
 parse_ini() {
@@ -489,6 +498,8 @@ parse_ini() {
   # Clean up the environment.
   unset INIFILE
 }
+
+
 
 parse_ini "$@"
 exit $?
