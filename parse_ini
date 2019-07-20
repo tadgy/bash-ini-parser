@@ -259,16 +259,16 @@ parse_ini() {
   local VARIABLE_DELIM="_"				# Delimiter between prefix and section name, unless VARIABLE_PREFIX is empty.
 
   # Variables.
-  local BOOL_VALUE DELIM ERR IGNORE_SECTION=0 INIFD KEY LINE LINENUMBER=0 PREFIX REPLY SECTION SECTIONS_SEEN=() VALUE
+  local BOOL_VALUE DELIM IGNORE_SECTION=0 INIFD KEY LINE LINENUMBER=0 PREFIX SECTIONS_SEEN=() TEMP VALUE
   declare INIFILE
 
   # Parse options.
   parser_getopts "$@"
-  ERR=$?
-  if ((ERR == 1)); then
+  TEMP=$?
+  if ((TEMP == 1)); then
     # And error occured.
     return 1
-  elif ((ERR == 2)); then
+  elif ((TEMP == 2)); then
     # Help/version was showed, exit sucessfully.
     return 0
   fi
@@ -327,15 +327,15 @@ parse_ini() {
     while :; do
       # Read a line of input from the file descriptor.
       # The 'read' will do the job of removing leading whitespace from the line.
-      read -r -u "$INIFD" REPLY || break 2
+      read -r -u "$INIFD" TEMP || break 2
       ((LINENUMBER++))
 
       # Handle line continuations.
-      if [[ "${REPLY: -1:1}" == "\\" ]]; then
-        LINE+="${REPLY:0:-1}"
+      if [[ "${TEMP: -1:1}" == "\\" ]]; then
+        LINE+="${TEMP:0:-1}"
         continue
       else
-        LINE+="$REPLY"
+        LINE+="$TEMP"
         break
       fi
     done
@@ -365,6 +365,8 @@ parse_ini() {
         # Strip the []s and any whitespace between the []s and the section name.
         LINE="${LINE/#\[*([[:space:]])/}"
         LINE="${LINE/%*([[:space:]])\]/}"
+#        LINE="${LINE/#*([[:blank:]])\[*([[:blank:]])/}"
+#        LINE="${LINE/%*([[:blank:]])\]*([[:blank:]])/}"
 
         # Squash multiple consecutive blanks into a single space.
         ((SQUASH_SPACES == 1)) && LINE="${LINE//+([[:blank:]])/ }"
@@ -390,8 +392,8 @@ parse_ini() {
 
         # Should we process repeat sections?
         if ((REPEAT_SECTIONS == 0)); then
-          for SECTION in "${SECTIONS_SEEN[@]}"; do
-            if [[ "$CURRENT_SECTION" == "$SECTION" ]]; then
+          for TEMP in "${SECTIONS_SEEN[@]}"; do
+            if [[ "$CURRENT_SECTION" == "$TEMP" ]]; then
               # It's a section we've seen before - don't process it.
               echo "${0##*/}: line $LINENUMBER: repeated section name - skipping section" >&2
               IGNORE_SECTION=1
@@ -437,6 +439,7 @@ parse_ini() {
       fi
 
       # Output the associative array element definition.
+      # FIXME: If doing validation only, don't output declaration here.
       if ((USE_BOOLEANS == 1)); then
         printf "%s%s%s[\"%s\"]=\"%s\"\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$LINE" "$BOOL_VALUE"
       else
