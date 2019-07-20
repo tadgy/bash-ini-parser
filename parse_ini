@@ -259,7 +259,7 @@ parse_ini() {
   local VARIABLE_DELIM="_"				# Delimiter between prefix and section name, unless VARIABLE_PREFIX is empty.
 
   # Variables.
-  local BOOL_VALUE DELIM IGNORE_SECTION=0 INIFD KEY LINE LINENUMBER=0 PREFIX SECTIONS_SEEN=() TEMP VALUE
+  local BOOL_VALUE DELIM IGNORE_SECTION=0 INIFD KEY LINE LINENUMBER=0 PREFIX SECTIONS_SEEN=() SHOWN_SEC_HEAD=0 TEMP VALUE
   declare INIFILE
 
   # Parse options.
@@ -315,10 +315,6 @@ parse_ini() {
     PREFIX="$VARIABLE_PREFIX"
     DELIM="$VARIABLE_DELIM"
   fi
-
-  # Output the 'global' section definition.
-  # FIXME: If doing validation only, don't output declaration here.
-  printf "declare %s -A %s%s%s\\n" "$DECLARE_SCOPE" "$PREFIX" "$DELIM" "$CURRENT_SECTION"
 
   # Parse the INI file.
   while :; do
@@ -406,9 +402,8 @@ parse_ini() {
         # Reset the ignore flag.
         IGNORE_SECTION=0
 
-        # Output the associative array declaration.
-        # FIXME: If doing validation only, don't output declaration here.
-        printf "declare %s -A %s%s%s\\n" "$DECLARE_SCOPE" "$PREFIX" "$DELIM" "$CURRENT_SECTION"
+        # Flag that the section header needs to be shown.
+        SHOWN_SEC_HEAD=0
       fi
     elif ((IGNORE_SECTION == 0)) && [[ "$LINE" != *$KEYVALUE_DELIM* ]]; then		# Process the property definition as if it's a boolean.
       # If the value starts with a " or ' it must end with same.
@@ -439,8 +434,13 @@ parse_ini() {
       fi
 
       # Output the associative array element definition.
-      # FIXME: If doing validation only, don't output declaration here.
+      # FIXME: If doing validation only, don't output declarations here.
       if ((USE_BOOLEANS == 1)); then
+        # If required, output the associative array declaration.
+        if ((SHOWN_SEC_HEAD == 0)); then
+          printf "declare %s -A %s%s%s\\n" "$DECLARE_SCOPE" "$PREFIX" "$DELIM" "$CURRENT_SECTION"
+          SHOWN_SEC_HEAD=1
+        fi
         printf "%s%s%s[\"%s\"]=\"%s\"\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$LINE" "$BOOL_VALUE"
       else
         echo "${0##*/}: line $LINENUMBER: key without a value - skipping property" >&2
@@ -469,6 +469,13 @@ parse_ini() {
           echo "${0##*/}: line $LINENUMBER: unmatched quotes - skipping property" >&2
           continue
         fi
+      fi
+
+      # If required, output the associative array declaration.
+      # FIXME: If doing validation only, don't output declaration here.
+      if ((SHOWN_SEC_HEAD == 0)); then
+        printf "declare %s -A %s%s%s\\n" "$DECLARE_SCOPE" "$PREFIX" "$DELIM" "$CURRENT_SECTION"
+        SHOWN_SEC_HEAD=1
       fi
 
       # Output the associative array element definition.
