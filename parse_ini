@@ -18,6 +18,9 @@ parser_getopts() {
           fi
           shift
         ;;
+      -c|-check)
+          CHECK_ONLY="1"
+        ;;
       -d|-delim|--delim)
           if [[ -z "$2" ]]; then
             VARIABLE_DELIM=""
@@ -140,6 +143,10 @@ parser_help() {
 	      The bound character which delimits the key from the value in a property
 	      line of the INI file.  The default is "=".  This must be a single
 	      character and cannot be empty value.
+	  -c, --check
+	      Check (validate) the INI file by running it through the parser.  Testing
+	      the INI file will report any problems or syntax errors detected in the
+	      file to stderr, but will not output the array definitions.
 	  -d <char(s)>, --delim <char(s)>
 	      The character(s) (which may be an empty value) to use as a delimiter
 	      between the prefix and section name when defining the arrays.  The
@@ -232,6 +239,7 @@ parse_ini() {
 
   # Set defaults.
   local ACCEPTABLE_CHARS="[:blank:][:alnum:]_.+-"	# Characters allowed in section and key names.  Must be a valid regex bracket expression.
+  local CHECK_ONLY="0"					# Whether the parser is in check or normal mode.  0 = normal mode, 1 = check mode.
   local COMMENT_CHARS="#;"				# Characters which indicate the start of a comment line.
   local CONVERT_CASE="0"				# Whether to keep or convert section and key names to upper or loweer case.  -1 = covert to lowercase, 0 = keep case, 1 = convert to uppercase.
   local CONVERT_CHARS="[:blank:].+-"			# Characters from ACCEPTABLE_CHARS in section and key names that should be converted to _.  Must be a valid regex bracket expression.
@@ -327,7 +335,7 @@ parse_ini() {
     # Ignore the line if it's a comment.
     [[ "$LINE" =~ ^[[:blank:]]*([$COMMENT_CHARS].*)*$ ]] && continue
 
-    # Strip the trailing whitespace from the line (the leading whitespace has already been stripped by read).
+    # Strip the trailing whitespace from the line (leading whitespace has already been stripped by read).
     LINE="${LINE/%*([[:blank:]])/}"
 
     # Process the line.
@@ -422,14 +430,13 @@ parse_ini() {
       fi
 
       # Output the associative array element definition.
-      # FIXME: If doing validation only, don't output declarations here.
       if ((USE_BOOLEANS == 1)); then
         # If required, output the associative array declaration.
         if ((SHOWN_SEC_HEAD == 0)); then
-          printf "declare %s -A %s%s%s\\n" "$DECLARE_SCOPE" "$PREFIX" "$DELIM" "$CURRENT_SECTION"
+          ((CHECK_ONLY == 0)) && printf "declare %s -A %s%s%s\\n" "$DECLARE_SCOPE" "$PREFIX" "$DELIM" "$CURRENT_SECTION"
           SHOWN_SEC_HEAD=1
         fi
-        printf "%s%s%s[\"%s\"]=\"%s\"\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$LINE" "$TEMP"
+        ((CHECK_ONLY == 0)) && printf "%s%s%s[\"%s\"]=\"%s\"\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$LINE" "$TEMP"
       else
         echo "${0##*/}: line $LINENUMBER: key without a value - skipping property" >&2
         continue
@@ -460,22 +467,19 @@ parse_ini() {
       fi
 
       # If required, output the associative array declaration.
-      # FIXME: If doing validation only, don't output declaration here.
       if ((SHOWN_SEC_HEAD == 0)); then
-        printf "declare %s -A %s%s%s\\n" "$DECLARE_SCOPE" "$PREFIX" "$DELIM" "$CURRENT_SECTION"
+        ((CHECK_ONLY == 0)) && printf "declare %s -A %s%s%s\\n" "$DECLARE_SCOPE" "$PREFIX" "$DELIM" "$CURRENT_SECTION"
         SHOWN_SEC_HEAD=1
       fi
 
       # Output the associative array element definition.
-      # FIXME: If doing validation only, don't output declaration here.
       if ((DUPLICATES_MERGE == 0)); then
-        printf "%s%s%s[\"%s\"]=\"%s\"\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$KEY" "$VALUE"
+        ((CHECK_ONLY == 0)) && printf "%s%s%s[\"%s\"]=\"%s\"\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$KEY" "$VALUE"
       else
-        printf "%s%s%s[\"%s\"]+=\"%s\"\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$KEY" "$VALUE"
+        ((CHECK_ONLY == 0)) && printf "%s%s%s[\"%s\"]+=\"%s\"\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$KEY" "$VALUE"
       fi
     else
-      # FIXME: Make this debug output only.
-      echo "Skipping line $LINENUMBER" >&2
+      ((CHECK_ONLY == 1)) && echo "${0##*/}: line $LINENUMBER: skipping line" >&2
     fi
   done
 
