@@ -247,7 +247,7 @@ parse_ini() {
   local VARIABLE_DELIM="_"				# Delimiter between prefix and section name, unless VARIABLE_PREFIX is empty.
 
   # Variables.
-  local BOOL_VALUE DELIM IGNORE_SECTION=0 INIFD KEY LINE LINENUMBER=0 PREFIX SECTIONS_SEEN=() SHOWN_SEC_HEAD=0 TEMP VALUE
+  local DELIM IGNORE_SECTION=0 INIFD KEY LINE LINENUMBER=0 PREFIX SECTIONS_SEEN=() SHOWN_SEC_HEAD=0 TEMP VALUE
   declare INIFILE
 
   # Parse options.
@@ -409,15 +409,15 @@ parse_ini() {
       if [[ "${LINE:0:3}" == "no_" ]]; then
         LINE="${LINE:3:${#LINE} - 1}"
         if ((TEXTUAL_BOOLEANS == 0)); then
-          BOOL_VALUE=0
+          TEMP=0
         else
-          BOOL_VALUE="false"
+          TEMP="false"
         fi
       else
         if ((TEXTUAL_BOOLEANS == 0)); then
-          BOOL_VALUE=1
+          TEMP=1
         else
-          BOOL_VALUE="true"
+          TEMP="true"
         fi
       fi
 
@@ -429,7 +429,7 @@ parse_ini() {
           printf "declare %s -A %s%s%s\\n" "$DECLARE_SCOPE" "$PREFIX" "$DELIM" "$CURRENT_SECTION"
           SHOWN_SEC_HEAD=1
         fi
-        printf "%s%s%s[\"%s\"]=\"%s\"\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$LINE" "$BOOL_VALUE"
+        printf "%s%s%s[\"%s\"]=\"%s\"\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$LINE" "$TEMP"
       else
         echo "${0##*/}: line $LINENUMBER: key without a value - skipping property" >&2
         continue
