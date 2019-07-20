@@ -390,7 +390,7 @@ parse_ini() {
 
         # Should we process repeat sections?
         if ((REPEAT_SECTIONS == 0)); then
-          for SECTION in "${SEEN_SECTIONS[@]}"; do
+          for SECTION in "${SECTIONS_SEEN[@]}"; do
             if [[ "$CURRENT_SECTION" == "$SECTION" ]]; then
               # It's a section we've seen before - don't process it.
               echo "${0##*/}: line $LINENUMBER: repeated section name - skipping section" >&2
@@ -398,7 +398,7 @@ parse_ini() {
               continue 2
             fi
           done
-          SEEN_SECTIONS+=("$CURRENT_SECTION")
+          SECTIONS_SEEN+=("$CURRENT_SECTION")
         fi
 
         # Reset the ignore flag.
