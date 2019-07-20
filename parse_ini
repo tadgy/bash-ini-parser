@@ -357,8 +357,6 @@ parse_ini() {
         # Strip the []s and any whitespace between the []s and the section name.
         LINE="${LINE/#\[*([[:space:]])/}"
         LINE="${LINE/%*([[:space:]])\]/}"
-#        LINE="${LINE/#*([[:blank:]])\[*([[:blank:]])/}"
-#        LINE="${LINE/%*([[:blank:]])\]*([[:blank:]])/}"
 
         # Squash multiple consecutive blanks into a single space.
         ((SQUASH_SPACES == 1)) && LINE="${LINE//+([[:blank:]])/ }"
@@ -474,9 +472,9 @@ parse_ini() {
 
       # Output the associative array element definition.
       if ((DUPLICATES_MERGE == 0)); then
-        ((CHECK_ONLY == 0)) && printf "%s%s%s[\"%s\"]=\"%s\"\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$KEY" "$VALUE"
+        ((CHECK_ONLY == 0)) && printf "%s%s%s[\"%s\"]='%s'\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$KEY" "${VALUE//\'/\'\\\'\'}"
       else
-        ((CHECK_ONLY == 0)) && printf "%s%s%s[\"%s\"]+=\"%s\"\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$KEY" "$VALUE"
+        ((CHECK_ONLY == 0)) && printf "%s%s%s[\"%s\"]+='%s'\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$KEY" "${VALUE//\'/\'\\\'\'}"
       fi
     else
       ((CHECK_ONLY == 1)) && echo "${0##*/}: line $LINENUMBER: skipping line" >&2
