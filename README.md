@@ -19,22 +19,101 @@ Features of the parser include:
   * ... and more!
 
 
-Usage
-=====
-The basic usage of the parser is: `parse_ini [options] <INI file>`.
-The `[options]` can be seen using `parse_ini --help` and have detailed
+Usaing the Parser
+=================
+The basic usage of the parser is: `/path/to/parse_ini [options] <INI file>`.
+The `[options]` can be seen using `/path/to/parse_ini --help` and have detailed
 descriptions.
 
 The parser outputs Bash syntax associative array declarations, and array
 element definitions to `stdout`.  These Bash commands can be `eval`ed into
 a script to provide access to every element in the INI file.  For example,
-using `eval "$(parse_ini test.ini)"` in your script would define a set of
-arrays whose values can be accessed in the Bash standard method, using the keys
+using `eval "$(/path/to/parse_ini example.ini)"` in your script would define a set
+of arrays whose values can be accessed in the Bash standard method, using the keys
 from the INI file.
 
 The functions from the `parse_ini` script can be included in your own scripts to
-provide INI file parsing abilities.
+provide INI file parsing abilities without the need to call an external command.
+In this usage, all that is required is a call to the `parse_ini` function within
+an `eval` with the desired `[options]` and an INI file name to parse.
 
+
+Using The Arrays
+================
+Once the parser has finished its job (assuming you ran it within an `eval`), the
+arrays defined by the parse_ini script will become available to usage within your
+own script.
+
+To access the arrays depends upon the options used to call the script.
+For all the examples below, assume that the `example.ini` referenced in the
+command line is a simple ini file, with contents:
+
+```
+Global Key = Global Value
+
+[ Section 1 ]
+Section 1 Key = Ssection 1 Value
+```
+In this example, there is 1 key/value property in the 'global' section of the INI,
+and a section named "section 1", which itself has 1 key/value property associated
+with it.  Note the case of the key names as this is important when the arrays are
+defined.
+
+For these examples, the `parse_ini` script will be called directly so the output
+of the parser can be examined - the same commands demonstrated here can be used
+within an `eval` in a script.
+
+* Basic usage - no options:
+```
+$ /path/to/parse_ini example.ini
+declare -g -A INI_global
+INI_global["Global Key"]='Global Value'
+declare -g -A INI_Section_1
+INI_Section_1["Section 1 Key"]='Ssection 1 Value'
+```
+Here we can see that the parser has declared an associative array named
+`INI_global` (line 1), followed by an array element named `Global Key` (line 2).
+It then declares a new section called `INI_Section_1` (line 3) which has it's own
+element, `Section 1 Key` (line 4).
+
+To use the arrays (once `eval`ed into your script) would be as simple as accessing
+any associative array element:
+```
+printf "%s\\n" "${INI_global["Global Key"]}"
+printf "%s\\n" "${INI_Section_1["Section 1 Key"]}"
+```
+
+The way to understand what array names and element names are created by the parser
+it is necessary to understand the format the parser uses to construct the array
+definitions (assuming no options are used at this point).  The format is:
+```
+<prefix><delimiter><section name>['<key name>']='<value>'
+```
+Where `<prefix>` is the prefix given to every array/element created by the parser
+(the default is `INI`, but can be changed with `--prefix` - demonstrated below).
+`<delimiter>` is the delimiter character(s) used in every array/element declared
+by the parser (the default is `_`, but can be changed with `--delim` - example
+below).  `<section name>` is the name of the section taken from the section header
+definition in the INI file.  `<key name>` is the name of the key as defined in the
+section of the INI file.  And finally, `<value>` is the value taken from the
+key/value property in the INI file.
+
+Using options, the format of the array declarations can be changed.
+Options exist to:
+* Change the `<prefix>` of the arrays declared (the value may be empty),
+* Change the delimiter between the `<prefix>` and `<section name>` (the value may
+  be empty),
+* Change the name of the implied section at the beginning of the file, known as the
+  'global' section,
+* Covert the `<prefix>`, `<delimiter>` and `<section name>` to upper or lowercase
+  before declaring the arrays,
+* No squash multiple consecutive blanks into a single "_", as normally happens during
+  processing.
+
+
+
+Finally, the arrays may be declared as local (using the `--local` option, or as
+exported to the environment (using the `--export` option).
 
 INI File Format
 ===============
