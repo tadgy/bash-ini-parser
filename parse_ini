@@ -181,13 +181,13 @@ parser_help() {
 	      Show version and copyright information.
 
 	Lesser used options:
-          --duplicates-merge
-              If a duplicate key for a specific section is found, the normal behaviour
-              is to have the latter instance of the key overwrite the value of the
-              earlier.  With this option, the keys are merged, and a new, concatinated,
-              value will result.  The concatinated values are not separated by any
-              characters.  Booleans are the exception to this behaviour, as the
-              latter bool will always override an earlier setting.
+	  --duplicates-merge
+	      If a duplicate key for a specific section is found, the normal behaviour
+	      is to have the latter instance of the key overwrite the value of the
+	      earlier.  With this option, the keys are merged, and a new, concatinated,
+	      value will result.  The concatinated values are not separated by any
+	      characters.  Booleans are the exception to this behaviour, as the
+	      latter bool will always override an earlier setting.
 	  --global-name <name>
 	      The name of the 'global' section used when defining the arrays.  Only
 	      alphanumerics and _ may be used with this option, which cannot be empty.
