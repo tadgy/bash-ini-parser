@@ -514,10 +514,10 @@ parse_ini() {
   fi
 
   # Clean up the environment.
-  unset INIFILE
+  unset DELIM_SET INIFILE
 }
 
 
-
+# If using the above functions in a script, adjust the call to 'parse_ini' below to use your chosen options.
 parse_ini "$@"
 exit $?
