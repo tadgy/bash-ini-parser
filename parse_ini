@@ -151,19 +151,19 @@ parser_help() {
 	  -b <char>, --bound <char>
 	      The bound character which delimits the key from the value in a property
 	      line of the INI file.  The default is "=".  This must be a single
-	      character and cannot be empty value.
+	      character and cannot be an empty value.
 	  -c, --check
 	      Check (validate) the INI file by running it through the parser.  Testing
 	      the INI file will report any problems or syntax errors detected in the
-	      file to stderr, but will not output the array definitions.
+	      file to stderr, but will not output the array declarations.
 	  -d <char(s)>, --delim <char(s)>
 	      The character(s) (which may be an empty value) to use as a delimiter
-	      between the prefix and section name when defining the arrays.  The
-	      default is "_", except where prefix is set to an empty value, in which
+	      between the prefix and section name when declaring the arrays.  The
+	      default is "_", except when '--prefix' is set to an empty value, in which
 	      case the default is also empty.  Only alphanumerics and _ may be used with
-	      this option, and it may not begin with a number if prefix is empty.  The
-	      delimiter may be converted to upper or lower case depending upon the use
-	      of '--uppercase' or '--lowercase'.
+	      this option, and it may not begin with a number if '--prefix' is empty.
+	      The delimiter may be converted to upper or lower case depending upon the
+	      use of '--uppercase' or '--lowercase'.
 	  -e, --export
 	      When declaring the arrays, export them to the environment.
 	  -h, -?, --help
@@ -172,15 +172,16 @@ parser_help() {
 	      Declare the arrays as being local in scope, instead of the default of
 	      global scope.
 	  -p <prefix>, --prefix <prefix>
-	      The prefix of all the variables set when defining the arrays.  The default
-	      is "INI".  An empty prefix (denoted by "") implies '-d ""', but this can
-	      be overridden by explicitly specifying a delimiter with '-d'.  Only
-	      alphanumerics and _ may be used with this option, and it may not be empty
-	      when delim ('-d') begins with a number.
+	      The prefix of all the variables set when declaring the arrays.  The
+	      default is "INI".  An empty prefix (denoted by "") implies '-d ""', but
+	      this can be overridden by explicitly specifying a delimiter with '-d'.
+	      Only alphanumerics and "_" may be used with this option, and it may not be
+	      empty when delim ('-d') begins with a number.
 	  -v, --version
 	      Show version and copyright information.
 
 	Lesser used options:
+        #........1.........2.........3.........4.........5.........6.........7.........8
 	  --duplicates-merge
 	      If a duplicate key for a specific section is found, the normal behaviour
 	      is to have the latter instance of the key overwrite the value of the
@@ -189,14 +190,15 @@ parser_help() {
 	      characters.  Booleans are the exception to this behaviour, as the
 	      latter bool will always override an earlier setting.
 	  --global-name <name>
-	      The name of the 'global' section used when defining the arrays.  Only
-	      alphanumerics and _ may be used with this option, which cannot be empty.
+	      The name of the 'global' section used when declaring the arrays.  Only
+	      alphanumerics and "_" may be used with this option, which cannot be empty.
 	      The name may not begin with a number, and may be converted to upper or
 	      lower case depending upon the use of '--uppercase' or '--lowercase'.
 	  --lowercase
-	      When defining the arrays, the case of the prefix ('-p') name, delimiter
-	      and section name is kept as set.  With this option all items are converted
-	      to lower case.  The case of the propertie's keys/values is not affected.
+	      When declaring the arrays, the case of the prefix ('--prefix') name,
+	      delimiter and section name is kept as per the INI file.  With this option
+	      all items are converted to lower case.  The case of the propertie's
+	      keys/values is not affected.
 	  --no-booleans
 	      Normally, the parser interprites the presence of a key without an
 	      associated value as a boolean.  Keys which are proceeded by "no_" are
@@ -205,21 +207,22 @@ parser_help() {
 	      considered a syntax error in the INI file.
 	  --no-squash
 	      Do not squash multiple consecutive blanks (which are later translated to
-	      a _) into a single space while reading section names and properties.
+	      a "_") into a single space while reading section names and properties.
 	  --repeat-sections
-	      Usually, if a section is repeated in the INI file its properties are
+	      Usually, if a section is repeated in the INI file, its properties are
 	      ignored.  Using this option allows sections to be repeated in the file,
 	      but this does not affect the processing of the keys/values.  Ssee the
 	      '--duplicates-merge' option also.
 	  --textual-booleans
-	      When defining the arrays, boolean keys are given a value of "0" or "1"
+	      When declaring the arrays, boolean keys are given a value of "0" or "1"
 	      (representing 'false' and 'true' respectivly).  With this option the value
 	      of the key will be the text "false" or "true" instead.  Ignored when
 	      '--no-booleans' is in use.
 	  --uppercase
-	      When defining the arrays, the case of the prefix ('-p') name, delimiter
-	      and section name is kept as set.  With this option all items are converted
-	      to upper case.  The case of the propertie's keys/values is not affected.
+	      When declaring the arrays, the case of the prefix ('--prefix') name,
+	      delimiter and section name is kept as per the INI file.  With this option
+	      all items are converted to upper case.  The case of the propertie's
+	      keys/values is not affected.
 	Option processing ceases with the first non-option argument, or "--".
 	EOF
 }

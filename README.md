@@ -75,9 +75,11 @@ General File Format
   bash arrays.
 * Whitespace is ignored before and after the section name.
 * Section names should not be quoted in any way.
-* Sections can be duplicated in different parts of the INI file - their keys
-  and values will be merged as long as the keys are unique.  If the keys are
-  not unique they may overwrite or append values (depending upon CLI options).
+* Unless an option is used sections cannot be duplicated in different parts of
+  the INI file - the properties are ignored.  With the option
+  `--repeat-sections` the keys and values will be merged as long as the keys are
+  unique.  If the keys are not unique, they may overwrite or append values
+  (depending upon CLI options).
 
 Keys
 ----
