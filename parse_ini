@@ -9,8 +9,6 @@
 
 
 parser_getopts() {
-  local DELIM_SET=0
-
   while [[ ! -z "$1" ]]; do
     case "$1" in
       -b|-bound|--bound)
@@ -267,7 +265,7 @@ parse_ini() {
 
   # Variables.
   local DELIM IGNORE_SECTION=0 INIFD KEY LINE LINENUMBER=0 PREFIX SECTIONS_SEEN=() SHOWN_SEC_HEAD=0 TEMP VALUE
-  declare INIFILE
+  declare DELIM_SET=0 INIFILE
 
   # Parse options.
   parser_getopts "$@"
@@ -488,11 +486,22 @@ parse_ini() {
         SHOWN_SEC_HEAD=1
       fi
 
+      # If prefix is empty, but delim has been specifically set, use it.
+      if [[ -z "$PREFIX" ]]; then
+        if ((DELIM_SET == 1)); then
+          TEMP="$DELIM"
+        else
+          TEMP=""
+        fi
+      else
+        TEMP="$DELIM"
+      fi
+
       # Output the associative array element definition.
       if ((DUPLICATES_MERGE == 0)); then
-        ((CHECK_ONLY == 0)) && printf "%s%s%s[\"%s\"]='%s'\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$KEY" "${VALUE//\'/\'\\\'\'}"
+        ((CHECK_ONLY == 0)) && printf "%s%s%s[\"%s\"]='%s'\\n" "$PREFIX" "$TEMP" "$CURRENT_SECTION" "$KEY" "${VALUE//\'/\'\\\'\'}"
       else
-        ((CHECK_ONLY == 0)) && printf "%s%s%s[\"%s\"]+='%s'\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$KEY" "${VALUE//\'/\'\\\'\'}"
+        ((CHECK_ONLY == 0)) && printf "%s%s%s[\"%s\"]+='%s'\\n" "$PREFIX" "$TEMP" "$CURRENT_SECTION" "$KEY" "${VALUE//\'/\'\\\'\'}"
       fi
     else
       ((CHECK_ONLY == 1)) && echo "${0##*/}: line $LINENUMBER: skipping line" >&2
