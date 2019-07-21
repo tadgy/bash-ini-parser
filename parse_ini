@@ -210,7 +210,7 @@ parser_help() {
 	  --repeat-sections
 	      Usually, if a section is repeated in the INI file, its properties are
 	      ignored.  Using this option allows sections to be repeated in the file,
-	      but this does not affect the processing of the keys/values.  Ssee the
+	      but this does not affect the processing of the keys/values.  See the
 	      '--duplicates-merge' option also.
 	  --textual-booleans
 	      When declaring the arrays, boolean keys are given a value of "0" or "1"
