@@ -388,8 +388,15 @@ parse_ini() {
           LINE="${LINE^^}"
         fi
 
-        # Keep track of the current section name.
-        CURRENT_SECTION="$LINE"
+        # If the prefix and delim are both empty, the section name cannot begin with a number.
+        if [[ -z "$PREFIX" ]] && [[ -z "$DELIM" ]] && [[ "${LINE:0:1}" =~ [[:digit:]] ]]; then
+          echo "${0##*/}: line $LINENUMBER: section name cannot begin with a number when prefix (-p) and delim (-d) are both empty - skipping section" >&2
+          IGNORE_SECTION=1
+          continue 2
+        else
+          # Keep track of the current section name.
+          CURRENT_SECTION="$LINE"
+        fi
 
         # Should we process repeat sections?
         if ((REPEAT_SECTIONS == 0)); then
