@@ -181,7 +181,6 @@ parser_help() {
 	      Show version and copyright information.
 
 	Lesser used options:
-        #........1.........2.........3.........4.........5.........6.........7.........8
 	  --duplicates-merge
 	      If a duplicate key for a specific section is found, the normal behaviour
 	      is to have the latter instance of the key overwrite the value of the
