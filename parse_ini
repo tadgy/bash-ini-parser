@@ -346,8 +346,8 @@ parse_ini() {
     # Ignore the line if it's a comment.
     [[ "$LINE" =~ ^[[:blank:]]*([$COMMENT_CHARS].*)*$ ]] && continue
 
-    # Strip the trailing whitespace from the line (leading whitespace has already been stripped by read).
-    LINE="${LINE/%*([[:blank:]])/}"
+    # Strip the trailing whitespace and any \r from the line (leading whitespace has already been stripped by read).
+    LINE="${LINE/%*([[:blank:]])*([$'\r'])/}"
 
     # Process the line.
     if [[ "${LINE:0:1}" == "[" ]]; then		# Found the beginning of a section definition.
