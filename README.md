@@ -119,8 +119,6 @@ options):
 $ /path/to/parse_ini --prefix "Foo" example.ini
 declare -g -A Foo_global
 Foo_global["Global Key"]='Global Value'
-declare -g -A Foo_0_section
-Foo_0_section["key"]='value'
 declare -g -A Foo_Section_1
 Foo_Section_1["Section 1 Key"]='Section 1 Value'
 ```
@@ -135,8 +133,6 @@ prefix:
 $ /path/to/parse_ini --delim "X" example.ini
 declare -g -A INIXglobal
 INIXglobal["Global Key"]='Global Value'
-declare -g -A INIX0_section
-INIX0_section["key"]='value'
 declare -g -A INIXSection_1
 INIXSection_1["Section 1 Key"]='Section 1 Value'
 ```
@@ -144,8 +140,6 @@ INIXSection_1["Section 1 Key"]='Section 1 Value'
 $ /path/to/parse_ini --prefix "Foo" --delim "X" example.ini
 declare -g -A FooXglobal
 FooXglobal["Global Key"]='Global Value'
-declare -g -A FooX0_section
-FooX0_section["key"]='value'
 declare -g -A FooXSection_1
 FooXSection_1["Section 1 Key"]='Section 1 Value'
 ```
@@ -167,8 +161,6 @@ There's an option for that too!  Note the combination of options from above:
 $ /path/to/parse_ini --prefix "Foo" --global-name "Head" --lowercase example.ini
 declare -g -A foo_head
 foo_head["Global Key"]='Global Value'
-declare -g -A foo_0_section
-foo_0_section["key"]='value'
 declare -g -A foo_section_1
 foo_section_1["Section 1 Key"]='Section 1 Value'
 ```
@@ -177,8 +169,6 @@ Or:
 $ /path/to/parse_ini --prefix "Foo" --global-name "Head" --uppercase example.ini
 declare -g -A FOO_HEAD
 FOO_HEAD["Global Key"]='Global Value'
-declare -g -A FOO_0_SECTION
-FOO_0_SECTION["key"]='value'
 declare -g -A FOO_SECTION_1
 FOO_SECTION_1["Section 1 Key"]='Section 1 Value'
 ```
