@@ -45,7 +45,6 @@ by enabling them as a `--option`.  See the output of `parse_ini --help` for the
 options.
 
 The main features of the supported INI file format are as follows:
-#........1.........2.........3.........4.........5.........6.........7.........8
 
 General File Format
 -------------------
@@ -55,77 +54,57 @@ General File Format
   as comments and ignored during parsing.  Comments must appear on a line on
   their own.
 * Escaping of shell special characters is not required.
+* Using `\`as the last character on a line allows continuation of that line
+  onto a subsequent line.  Leading whitespace is removed from the continuation
+  lines.  Comments are not recognised between continuation lines.
+* Whitespace is ignored wherever possible.
+* The first section (before the first explicit section definition) of the INI
+  file is known as the "global" section, and it continues until the first
+  explicit definition of a section (or until EOF).  The "global" section is
+  optional.
 
-
-[section] format
+[Section] Format
 ----------------
-* Section names must only be comprised of alphanumeric characters, plus _.-+
-* The .-+ characters in section names will be converted to _
-* Section names are case sensitive (unless --ignore-case? is used), so 'Foo' and 'foo' are different sections.
+* Sections run from one section definition until the next (or EOF).
+* Sections are optional.  The "global" section can be the only section used.
+* Section names can only be comprised of alphanumeric characters, plus `_`, `.`,
+  `-`, and `+`.
+* Section names are case sensitive, unless one of the options `--lowercase` or
+  `--uppercase` is used.
+* The characters `.`, `-`, and `+` will be converted to `_` when defining the
+  bash arrays.
 * Whitespace is ignored before and after the section name.
 * Section names should not be quoted in any way.
+* Sections can be duplicated in different parts of the INI file - their keys
+  and values will be merged as long as the keys are unique.  If the keys are
+  not unique they may overwrite or append values (depending upon CLI options).
 
 Keys
 ----
-* Keys must only be comprised of alphanumeric characters, plus _.-+
+* Key names are case sensitive, unless one of the `--lowercase` or `--uppercase` 
+  options is used.
+* Keys can be comprised of any character.
 * Keys should not be quoted in any way.
+* Keys are delimited from the values by an `=`, unless the `--bound` option is
+  used.
+* If duplicate keys are defined in the same section, the latter definition takes
+  presedence, unless the `--duplicates-merge`option is used.
 
+#........1.........2.........3.........4.........5.........6.........7.........8
 Values
 ------
-Values can optionally be bookmarked with single or double quotes.
-  - If quotes are to be used, they must be the first and last characters of the value
-  - Whitespace within the quotes is retained verbatim.
-  - Backslash line continuation is supported within quotes (but leading whitespace on subsequent lines is removed).
-Values can be continued by use of \ in the last column.
-  - Subsequent lines are subject to leading whitespace removal as normal.
-  - Comments are not recognised on subsequent lines - they are treated as part of the value.
+* Values are used verbatim - there is no conversion to upper or lower case.
+* Values can be surrounded by quotes in order to maintain whitespace.  Quotes
+  must be the first and last characters on the line (after whitespace removal).
 
 Booleans
 --------
-* no_<option> sets it to 0/false, else 1/true.
-* Later settings of the same key override previous ones - last one wins.
-
-Quotes
-------
-* Quotes are not required for section names, keys or values.  However, in some cases, quotes around the value may be required; for example, when the value begins or ends with whitespace which should be retained in the value - a set of quotes (either "..." or '...') should be used around the value.
-* Quotes are not required and should not be used around section names or keys.
-* If the value is within quotes ("" or ''), any use of the same quote character (either " or ') must be backslash escaped.
-
-
-# http://en.wikipedia.org/wiki/INI_file:
-#  * Provides a good explanation of the ini format - use this for docs *
-#  * INI's have 'sections' and 'properties'.  Properties have key = value format *
-#
-#  Case insensitivity:  Case is not changed, unless option used to covert to lower/upper case.
-#  Comments:            Allow ; and # for comments.  Must be on their own line.
-#  Blank lines:         Blank lines are ignored.
-#  Escape chars:        \ at the end of a line will continue it onto next (leading whitespace is removed per normal)
-#  Ordering:            GLOBAL section must be at the top, sections continue until next section or EOF.
-
-#  Duplicate names:     Duplicate property values overwrite previous values.
-#                       Provide an option to abort/error is duplicate is found?
-#                       Add option to merge duplicates separated by octal byte (\036 ??)
-#                       Duplicate sections are merged.  Option to error if dup.
-#  Global properties:   Support.  Add to a GLOBAL section?
-#  Hierarchy:           No hierarchy support.  Each section is own section.
-#  Name/value delim:    Use = by default.  Allow : via option?
-#  Quoted values:       Allow values to be within " and ' to keep literal formatting.
-#  Whitespace:          Whitespace around section labels and []s is removed.
-#                       Whitespace within section labels is kept / translated.
-#                       Whitespace around property names is removed.
-#                       Whitespace within property names is kept as is (spaces squashed - option to override).
-#                       Property values have whitespace between = and data removed.
-#                       Property values are kept as is (no squashing)
-#  http://www.regular-expressions.info/posixbrackets.html
-#  http://ajdiaz.wordpress.com/2008/02/09/bash-ini-parser/
-#  https://github.com/rudimeier/bash_ini_parser/blob/ff9d46a5503bf41b3344af85447e28cbaf95350e/read_ini.sh
-# http://tldp.org/LDP/abs/html/
-# Specs:
-#  [section]            Can be upper/lower/mixed case (set by options)
-#                       Can only include: '-+_. [:alnum:]'
-#                       # Any single or consecutive occurance of '-+_. ' are converted to a *single* _
-#                       # eg:  [foo -+_. bar] becomes [foo_bar] ??
-#                       Any leading/trailing spaces/tabs between the []s and name will be removed.
+* Keys with no value are taken as boolean options and are set on or off depending
+  on how the key is defined.  Keys which do not start with a `no_` are taken as
+  a boolean true and the value is set to `1`.  If the key begins with a `no_` it
+  is taken as a boolean false and set to `0`.  The textual form `true` and
+  `false` can be used with an option.
+* Later settings of the same key override previous ones - the last one wins.
 
 
 TODO
