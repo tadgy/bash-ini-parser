@@ -90,7 +90,6 @@ Keys
 * If duplicate keys are defined in the same section, the latter definition takes
   presedence, unless the `--duplicates-merge`option is used.
 
-#........1.........2.........3.........4.........5.........6.........7.........8
 Values
 ------
 * Values are used verbatim - there is no conversion to upper or lower case.
