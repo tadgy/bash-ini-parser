@@ -1,7 +1,8 @@
 Bash INI File Parser
 ====================
 This is my attempt at a Bash INI File Parser.  It's probably not elegant,
-certainly not fast, but it does implement a large set of options and features.
+certainly not as fast as in other languages (but it did process a >3k line file
+in under 1 second), but it does implement a large set of options and features.
 
 I started work on this parser simply because I couldn't find an existing example
 that wasn't just a hack, incomplete or didn't have the features I expected from
