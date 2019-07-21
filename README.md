@@ -19,8 +19,8 @@ Features of the parser include:
   * ... and more!
 
 
-Usaing the Parser
-=================
+Using the Parser
+================
 The basic usage of the parser is: `/path/to/parse_ini [options] <INI file>`.
 The `[options]` can be seen using `/path/to/parse_ini --help` and have detailed
 descriptions.
@@ -52,7 +52,7 @@ command line is a simple ini file, with contents:
 Global Key = Global Value
 
 [ Section 1 ]
-Section 1 Key = Ssection 1 Value
+Section 1 Key = Section 1 Value
 ```
 In this example, there is one key/value property in the 'global' section of the
 INI, and a section named "section 1", which itself has 1 key/value property
@@ -69,12 +69,12 @@ $ /path/to/parse_ini example.ini
 declare -g -A INI_global
 INI_global["Global Key"]='Global Value'
 declare -g -A INI_Section_1
-INI_Section_1["Section 1 Key"]='Ssection 1 Value'
+INI_Section_1["Section 1 Key"]='Section 1 Value'
 ```
 Here we can see that the parser has declared an associative array named
-`INI_global` (line 1), followed by an array element named `Global Key` (line 2).
-It then declares a new section called `INI_Section_1` (line 3) which has it's
-own element, `Section 1 Key` (line 4).
+`INI_global` (line 1), followed by an element in that array named `Global Key`
+(line 2).  It then declares a new array called `INI_Section_1` (line 3) which
+has it's own element, `Section 1 Key` (line 4).
 
 To use the arrays (once `eval`ed into your script) would be as simple as
 accessing any associative array element:
@@ -85,7 +85,7 @@ printf "%s\\n" "${INI_Section_1["Section 1 Key"]}"
 
 The way to understand what array names and element names are created by the
 parser it is necessary to understand the format the parser uses to construct the
-array definitions (assuming no options are used at this point).  The format is:
+array declarations (assuming no options are used at this point).  The format is:
 ```
 <prefix><delimiter><section name>['<key name>']='<value>'
 ```
@@ -101,8 +101,8 @@ taken from the key/value property in the INI file.
 Using options, the format of the array declarations can be changed.
 Options exist to:
 * Change the `<prefix>` of the arrays declared (the value may be empty),
-* Change the delimiter between the `<prefix>` and `<section name>` (the value
-  may be empty),
+* Change the `<delimiter>` between the `<prefix>` and `<section name>` (the
+  value may be empty),
 * Change the name of the implied section at the beginning of the file, known as
   the 'global' section,
 * Covert the `<prefix>`, `<delimiter>` and `<section name>` to upper or
@@ -110,10 +110,90 @@ Options exist to:
 * No squash multiple consecutive blanks into a single "_", as normally happens
   during processing.
 
+Manipulating the options allows the arrays to be declared in different ways.
 
+If, for example, you don't like the `<prefix>` used by the parser ("INI" by
+default), you can change it with `--prefix` (or `-p` if you prefer short
+options):
+```
+$ /path/to/parse_ini --prefix "Foo" example.ini
+declare -g -A Foo_global
+Foo_global["Global Key"]='Global Value'
+declare -g -A Foo_0_section
+Foo_0_section["key"]='value'
+declare -g -A Foo_Section_1
+Foo_Section_1["Section 1 Key"]='Section 1 Value'
+```
+In this example, the prefix used is now "Foo".  Note that the prefix is mixed
+case - this is important since the array names are case sensitive and will need
+to be accessed using their case sensitive names (see below for options to change
+the case of declared arrays).
+
+Equally, the `<delimiter>` can be changed either with or independently of the 
+prefix:
+```
+$ /path/to/parse_ini --delim "X" example.ini
+declare -g -A INIXglobal
+INIXglobal["Global Key"]='Global Value'
+declare -g -A INIX0_section
+INIX0_section["key"]='value'
+declare -g -A INIXSection_1
+INIXSection_1["Section 1 Key"]='Section 1 Value'
+```
+```
+$ /path/to/parse_ini --prefix "Foo" --delim "X" example.ini
+declare -g -A FooXglobal
+FooXglobal["Global Key"]='Global Value'
+declare -g -A FooX0_section
+FooX0_section["key"]='value'
+declare -g -A FooXSection_1
+FooXSection_1["Section 1 Key"]='Section 1 Value'
+```
+
+We also have the option of changing the name of the 'global' section name used
+when declaring the arrays:
+```
+$ /path/to/parse_ini --global-name "Head" example.ini
+declare -g -A INI_Head
+INI_Head["Global Key"]='Global Value'
+...
+```
+Again, note that the name is mixed case, and this will need to be taken into
+account when accessing the array.
+
+Say you want to access the arrays using all capitals or all lowercase names.
+There's an option for that too!  Note the combination of options from above:
+```
+$ /path/to/parse_ini --prefix "Foo" --global-name "Head" --lowercase example.ini
+declare -g -A foo_head
+foo_head["Global Key"]='Global Value'
+declare -g -A foo_0_section
+foo_0_section["key"]='value'
+declare -g -A foo_section_1
+foo_section_1["Section 1 Key"]='Section 1 Value'
+```
+Or:
+```
+$ /path/to/parse_ini --prefix "Foo" --global-name "Head" --uppercase example.ini
+declare -g -A FOO_HEAD
+FOO_HEAD["Global Key"]='Global Value'
+declare -g -A FOO_0_SECTION
+FOO_0_SECTION["key"]='value'
+declare -g -A FOO_SECTION_1
+FOO_SECTION_1["Section 1 Key"]='Section 1 Value'
+```
+In these examples you can see that the array declarations have been made lower
+and upper case accordingly.  When using the `--lowercase` or `--uppercase`
+options, each of the `<prefix>`, `<delimiter>` and `<section name>` are
+affected.  But the `<key name>` remains in the case from the INI file.
+
+Using these options allows you to access the arrays in your preferred style -
+mixed case, all lowercase or all uppercase, and with any prefix or delimiter
+you prefer.
 
 Finally, the arrays may be declared as local (using the `--local` option, or as
-exported to the environment (using the `--export` option).
+exported to the environment (using the `--export` option).  These should need
+little explanation to a bash programmer ;)
 
 
 INI File Format
@@ -170,7 +250,7 @@ Keys
 * Keys are delimited from the values by an `=`, unless the `--bound` option is
   used.
 * If duplicate keys are defined in the same section, the latter definition takes
-  presedence, unless the `--duplicates-merge`option is used.
+  precedence, unless the `--duplicates-merge`option is used.
 
 Values
 ------
@@ -188,8 +268,8 @@ Booleans
 * Later settings of the same key override previous ones - the last one wins.
 
 
-TODO
-====
+TO-DO
+=====
 * Specific section parsing: only parse specified section(s) given on the command
   line (separate by commas?).  For the global section, use `.`.  For every
   section but global, use `*`.
