@@ -7,7 +7,7 @@ in under 1 second), but it does implement a large set of options and features.
 I started work on this parser simply because I couldn't find an existing example
 that wasn't just a hack, incomplete or didn't have the features I expected from
 a decent parser.  I hope I've come up with something helpful for other people,
-but it's scratched a personal itch and I'll be using it in my future projects.
+but it has scratched a personal itch and I'll be using it in my future projects.
 
 Features of the parser include:
   * Global properties section.
