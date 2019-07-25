@@ -22,33 +22,32 @@ Features of the parser include:
 
 Using the Parser
 ================
-The basic usage of the parser is: `/path/to/parse_ini [options] <INI file>`.
-The `[options]` can be seen using `/path/to/parse_ini --help` and have detailed
+The basic usage of the parser is: `/path/to/parse-ini [options] <INI file>`.
+The `[options]` can be seen using `/path/to/parse-ini --help` and have detailed
 descriptions.
 
 The parser outputs Bash syntax associative array declarations, and array
 element definitions to `stdout`.  These Bash commands can be `eval`ed into
 a script to provide access to every element in the INI file.  For example,
-using `eval "$(/path/to/parse_ini example.ini)"` in your script would define a
+using `eval "$(/path/to/parse-ini example.ini)"` in your script would define a
 set of arrays whose values can be accessed in the Bash standard method, using the
 keys from the INI file.
 
-The functions from the `parse_ini` script can be included in your own scripts to
+The functions from the `parse-ini` script can be included in your own scripts to
 provide INI file parsing abilities without the need to call an external command.
-In this usage, all that is required is a call to the `parse_ini` function within
+In this usage, all that is required is a call to the `parse-ini` function within
 an `eval` with the desired `[options]` and an INI file name to parse.
 
 
 Using The Arrays
 ================
 Once the parser has finished its job (assuming you ran it within an `eval`), the
-arrays defined by the parse_ini script will become available to usage within
+arrays defined by the parse-ini script will become available to usage within
 your own script.
 
 To access the arrays depends upon the options used to call the script.
 For all the examples below, assume that the `example.ini` referenced in the
 command line is a simple ini file, with contents:
-
 ```
 Global Key = Global Value
 
@@ -60,13 +59,13 @@ INI, and a section named "section 1", which itself has 1 key/value property
 associated with it.  Note the case of the key names as this is important when
 the arrays are defined.
 
-For these examples, the `parse_ini` script will be called directly so the output
+For these examples, the `parse-ini` script will be called directly so the output
 of the parser can be examined - the same commands demonstrated here can be used
 within an `eval` in a script.
 
 Basic usage - no options:
 ```
-$ /path/to/parse_ini example.ini
+$ /path/to/parse-ini example.ini
 declare -g -A INI_global
 INI_global["Global Key"]='Global Value'
 declare -g -A INI_Section_1
@@ -117,7 +116,7 @@ If, for example, you don't like the `<prefix>` used by the parser ("INI" by
 default), you can change it with `--prefix` (or `-p` if you prefer short
 options):
 ```
-$ /path/to/parse_ini --prefix "Foo" example.ini
+$ /path/to/parse-ini --prefix "Foo" example.ini
 declare -g -A Foo_global
 Foo_global["Global Key"]='Global Value'
 declare -g -A Foo_Section_1
@@ -128,27 +127,38 @@ case - this is important since the array names are case sensitive and will need
 to be accessed using their case sensitive names (see below for options to change
 the case of declared arrays).
 
+To access this array (once `eval`ed into your script, you would use:
+```
+printf "%s\\n" "${Foo_global["Global Key"]}"
+printf "%s\\n" "${Foo_Section_1["Section 1 Key"]}"
+```
+
 Equally, the `<delimiter>` can be changed either with or independently of the 
 prefix:
 ```
-$ /path/to/parse_ini --delim "X" example.ini
+$ /path/to/parse-ini --delim "X" example.ini
 declare -g -A INIXglobal
 INIXglobal["Global Key"]='Global Value'
 declare -g -A INIXSection_1
 INIXSection_1["Section 1 Key"]='Section 1 Value'
 ```
 ```
-$ /path/to/parse_ini --prefix "Foo" --delim "X" example.ini
+$ /path/to/parse-ini --prefix "Foo" --delim "X" example.ini
 declare -g -A FooXglobal
 FooXglobal["Global Key"]='Global Value'
 declare -g -A FooXSection_1
 FooXSection_1["Section 1 Key"]='Section 1 Value'
 ```
+Accessed with:
+```
+printf "%s\\n" "${FooX_global["Global Key"]}"
+printf "%s\\n" "${FooX_Section_1["Section 1 Key"]}"
+```
 
 We also have the option of changing the name of the 'global' section name used
 when declaring the arrays:
 ```
-$ /path/to/parse_ini --global-name "Head" example.ini
+$ /path/to/parse-ini --global-name "Head" example.ini
 declare -g -A INI_Head
 INI_Head["Global Key"]='Global Value'
 ...
@@ -156,10 +166,11 @@ INI_Head["Global Key"]='Global Value'
 Again, note that the name is mixed case, and this will need to be taken into
 account when accessing the array.
 
+
 Say you want to access the arrays using all capitals or all lowercase names.
 There's an option for that too!  Note the combination of options from above:
 ```
-$ /path/to/parse_ini --prefix "Foo" --global-name "Head" --lowercase example.ini
+$ /path/to/parse-ini --prefix "Foo" --global-name "Head" --lowercase example.ini
 declare -g -A foo_head
 foo_head["Global Key"]='Global Value'
 declare -g -A foo_section_1
@@ -167,7 +178,7 @@ foo_section_1["Section 1 Key"]='Section 1 Value'
 ```
 Or:
 ```
-$ /path/to/parse_ini --prefix "Foo" --global-name "Head" --uppercase example.ini
+$ /path/to/parse-ini --prefix "Foo" --global-name "Head" --uppercase example.ini
 declare -g -A FOO_HEAD
 FOO_HEAD["Global Key"]='Global Value'
 declare -g -A FOO_SECTION_1
@@ -177,6 +188,25 @@ In these examples you can see that the array declarations have been made lower
 and upper case accordingly.  When using the `--lowercase` or `--uppercase`
 options, each of the `<prefix>`, `<delimiter>` and `<section name>` are
 affected.  But the `<key name>` remains in the case from the INI file.
+
+
+You can even tell `parse-ini` to not use any `<prefix>` or `<delimiter>`:
+```
+$ /path/to/parse-ini --prefix "" --delim "" example.ini
+declare -g -A global
+global["Global Key"]='Global Value'
+declare -g -A Section_1
+Section_1["Section 1 Key"]='Section 1 Value'
+```
+Which you would access using:
+```
+printf "%s\\n" "${global["Global Key"]}"
+printf "%s\\n" "${Section_1["Section 1 Key"]}"
+```
+Note that there are some extra rules that come into play when leaving out the
+`<prefix>` and `<delimiter>` - section names cannot begin with numbers, for
+example.
+
 
 Using these options allows you to access the arrays in your preferred style -
 mixed case, all lowercase or all uppercase, and with any prefix or delimiter
@@ -192,7 +222,7 @@ INI File Format
 The INI file format is a very loose format - there are many options and features
 which can be supported.  I've tried to implement the widest set of features I
 can, but there may be functionality missing.  Some features are only available
-by enabling them as a `--option`.  See the output of `parse_ini --help` for the
+by enabling them as a `--option`.  See the output of `parse-ini --help` for the
 options.
 
 The main features of the supported INI file format are as follows:
