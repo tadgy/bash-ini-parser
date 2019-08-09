@@ -93,7 +93,7 @@ parser_getopts() {
             echo "${0##*/}: prefix (-p) cannot begin with a number" >&2
             return 1
           elif [[ "$2" =~ [^[:alnum:]_] ]]; then
-            echo "${0##*/}: only  alphanumerics and _ allowed for prefix (-p)" >&2
+            echo "${0##*/}: only alphanumerics and _ allowed for prefix (-p)" >&2
             return 1
           else
             VARIABLE_PREFIX="$2"
@@ -450,7 +450,7 @@ parse_ini() {
           ((CHECK_ONLY == 0)) && printf "declare %s -A %s%s%s\\n" "$DECLARE_SCOPE" "$PREFIX" "$DELIM" "$CURRENT_SECTION"
           SHOWN_SEC_HEAD=1
         fi
-        ((CHECK_ONLY == 0)) && printf "%s%s%s[\"%s\"]=\"%s\"\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$LINE" "$TEMP"
+        ((CHECK_ONLY == 0)) && printf "%s%s%s['%s']='%s'\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$LINE" "$TEMP"
       else
         echo "${0##*/}: line $LINENUMBER: key without a value - skipping property" >&2
         continue
@@ -499,9 +499,9 @@ parse_ini() {
 
       # Output the associative array element definition.
       if ((DUPLICATES_MERGE == 0)); then
-        ((CHECK_ONLY == 0)) && printf "%s%s%s[\"%s\"]='%s'\\n" "$PREFIX" "$TEMP" "$CURRENT_SECTION" "$KEY" "${VALUE//\'/\'\\\'\'}"
+        ((CHECK_ONLY == 0)) && printf "%s%s%s['%s']='%s'\\n" "$PREFIX" "$TEMP" "$CURRENT_SECTION" "$KEY" "${VALUE//\'/\'\\\'\'}"
       else
-        ((CHECK_ONLY == 0)) && printf "%s%s%s[\"%s\"]+='%s'\\n" "$PREFIX" "$TEMP" "$CURRENT_SECTION" "$KEY" "${VALUE//\'/\'\\\'\'}"
+        ((CHECK_ONLY == 0)) && printf "%s%s%s['%s']+='%s'\\n" "$PREFIX" "$TEMP" "$CURRENT_SECTION" "$KEY" "${VALUE//\'/\'\\\'\'}"
       fi
     else
       ((CHECK_ONLY == 1)) && echo "${0##*/}: line $LINENUMBER: skipping line" >&2
@@ -520,4 +520,3 @@ parse_ini() {
 
 # If using the above functions in a script, adjust the call to 'parse_ini' below to use your chosen options.
 parse_ini "$@"
-exit $?
