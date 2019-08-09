@@ -57,6 +57,7 @@ parser_getopts() {
             return 1
           elif [[ "$2" =~ [^[:alnum:]_] ]]; then
             echo "${0##*/}: only alphanumerics and _ allowed for global name (--global-name)" >&2
+            return 1
           else
             CURRENT_SECTION="$2"
           fi
