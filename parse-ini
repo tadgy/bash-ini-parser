@@ -469,6 +469,9 @@ parse_ini() {
       # Squash multiple consecutive blanks into a single space.
       ((SQUASH_SPACES == 1)) && KEY="${KEY//+([[:blank:]])/ }"
 
+      # Escape any 's in the key name.
+      KEY="${KEY//\'/\'\\\'\'}"
+
       # If the value starts with a " or ' it must end with same.
       if [[ "${VALUE:0:1}" =~ [\"\'] ]]; then
         if [[ "${VALUE:0:1}" == "${VALUE: -1:1}" ]]; then
