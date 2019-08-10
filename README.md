@@ -289,6 +289,22 @@ Booleans
 * Later settings of the same key override previous ones - the last one wins.
 
 
+Error/Return Codes
+==================
+The parser will return an error code depending upon the success or failure of
+processing the INI file.  The return codes are as follows:
+
+* **0** - Successful processing of the INI file with no warnings, or the help or
+  version text was displayed.
+* **1** - Complete failure to process the INI file.  This could be because:
+  * Incorrect version of Bash.
+  * Incorrect command line options, or invalid arguments.
+  * INI file does not exist, or access permission issue.
+* **2** - Partial failure to process the INI file.  The parser emitted some
+  errors during the processing of the INI file - a partial set of array
+  definitions was written to `stdout`, while the errors were written to `stderr`.
+
+
 TO-DO
 =====
 * Specific section parsing: only parse specified section(s) given on the command
