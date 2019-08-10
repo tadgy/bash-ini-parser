@@ -67,9 +67,9 @@ Basic usage - no options:
 ```
 $ /path/to/parse-ini example.ini
 declare -g -A INI_global
-INI_global["Global Key"]='Global Value'
+INI_global['Global Key']='Global Value'
 declare -g -A INI_Section_1
-INI_Section_1["Section 1 Key"]='Section 1 Value'
+INI_Section_1['Section 1 Key']='Section 1 Value'
 ```
 Here we can see that the parser has declared an associative array named
 `INI_global` (line 1), followed by an element in that array named `Global Key`
@@ -79,8 +79,8 @@ has it's own element, `Section 1 Key` (line 4).
 To use the arrays (once `eval`ed into your script) would be as simple as
 accessing any associative array element:
 ```
-printf "%s\\n" "${INI_global["Global Key"]}"
-printf "%s\\n" "${INI_Section_1["Section 1 Key"]}"
+printf "%s\\n" "${INI_global['Global Key']}"
+printf "%s\\n" "${INI_Section_1['Section 1 Key']}"
 ```
 
 The way to understand what array names and element names are created by the
@@ -118,9 +118,9 @@ options):
 ```
 $ /path/to/parse-ini --prefix "Foo" example.ini
 declare -g -A Foo_global
-Foo_global["Global Key"]='Global Value'
+Foo_global['Global Key']='Global Value'
 declare -g -A Foo_Section_1
-Foo_Section_1["Section 1 Key"]='Section 1 Value'
+Foo_Section_1['Section 1 Key']='Section 1 Value'
 ```
 In this example, the prefix used is now "Foo".  Note that the prefix is mixed
 case - this is important since the array names are case sensitive and will need
@@ -129,8 +129,8 @@ the case of declared arrays).
 
 To access this array (once `eval`ed into your script, you would use:
 ```
-printf "%s\\n" "${Foo_global["Global Key"]}"
-printf "%s\\n" "${Foo_Section_1["Section 1 Key"]}"
+printf "%s\\n" "${Foo_global['Global Key']}"
+printf "%s\\n" "${Foo_Section_1['Section 1 Key']}"
 ```
 
 Equally, the `<delimiter>` can be changed either with or independently of the 
@@ -138,21 +138,21 @@ prefix:
 ```
 $ /path/to/parse-ini --delim "X" example.ini
 declare -g -A INIXglobal
-INIXglobal["Global Key"]='Global Value'
+INIXglobal['Global Key']='Global Value'
 declare -g -A INIXSection_1
-INIXSection_1["Section 1 Key"]='Section 1 Value'
+INIXSection_1['Section 1 Key']='Section 1 Value'
 ```
 ```
 $ /path/to/parse-ini --prefix "Foo" --delim "X" example.ini
 declare -g -A FooXglobal
-FooXglobal["Global Key"]='Global Value'
+FooXglobal['Global Key']='Global Value'
 declare -g -A FooXSection_1
-FooXSection_1["Section 1 Key"]='Section 1 Value'
+FooXSection_1['Section 1 Key']='Section 1 Value'
 ```
 Accessed with:
 ```
-printf "%s\\n" "${FooX_global["Global Key"]}"
-printf "%s\\n" "${FooX_Section_1["Section 1 Key"]}"
+printf "%s\\n" "${FooX_global['Global Key']}"
+printf "%s\\n" "${FooX_Section_1['Section 1 Key']}"
 ```
 
 We also have the option of changing the name of the 'global' section name used
@@ -160,7 +160,7 @@ when declaring the arrays:
 ```
 $ /path/to/parse-ini --global-name "Head" example.ini
 declare -g -A INI_Head
-INI_Head["Global Key"]='Global Value'
+INI_Head['Global Key']='Global Value'
 ...
 ```
 Again, note that the name is mixed case, and this will need to be taken into
@@ -172,17 +172,17 @@ There's an option for that too!  Note the combination of options from above:
 ```
 $ /path/to/parse-ini --prefix "Foo" --global-name "Head" --lowercase example.ini
 declare -g -A foo_head
-foo_head["Global Key"]='Global Value'
+foo_head['Global Key']='Global Value'
 declare -g -A foo_section_1
-foo_section_1["Section 1 Key"]='Section 1 Value'
+foo_section_1['Section 1 Key']='Section 1 Value'
 ```
 Or:
 ```
 $ /path/to/parse-ini --prefix "Foo" --global-name "Head" --uppercase example.ini
 declare -g -A FOO_HEAD
-FOO_HEAD["Global Key"]='Global Value'
+FOO_HEAD['Global Key']='Global Value'
 declare -g -A FOO_SECTION_1
-FOO_SECTION_1["Section 1 Key"]='Section 1 Value'
+FOO_SECTION_1['Section 1 Key']='Section 1 Value'
 ```
 In these examples you can see that the array declarations have been made lower
 and upper case accordingly.  When using the `--lowercase` or `--uppercase`
@@ -194,14 +194,14 @@ You can even tell `parse-ini` to not use any `<prefix>` or `<delimiter>`:
 ```
 $ /path/to/parse-ini --prefix "" --delim "" example.ini
 declare -g -A global
-global["Global Key"]='Global Value'
+global['Global Key']='Global Value'
 declare -g -A Section_1
-Section_1["Section 1 Key"]='Section 1 Value'
+Section_1['Section 1 Key']='Section 1 Value'
 ```
 Which you would access using:
 ```
-printf "%s\\n" "${global["Global Key"]}"
-printf "%s\\n" "${Section_1["Section 1 Key"]}"
+printf "%s\\n" "${global['Global Key']}"
+printf "%s\\n" "${Section_1['Section 1 Key']}"
 ```
 Note that there are some extra rules that come into play when leaving out the
 `<prefix>` and `<delimiter>` - section names cannot begin with numbers, for
@@ -271,7 +271,7 @@ Keys
 * Keys are delimited from the values by an `=`, unless the `--bound` option is
   used.
 * If duplicate keys are defined in the same section, the latter definition takes
-  precedence, unless the `--duplicates-merge`option is used.
+  precedence, unless the `--duplicates-merge` option is used.
 
 Values
 ------
