@@ -265,7 +265,7 @@ parse_ini() {
   local VARIABLE_DELIM="_"				# Delimiter between prefix and section name, unless VARIABLE_PREFIX is empty.
 
   # Variables.
-  local DELIM IGNORE_SECTION=0 INIFD KEY LINE LINENUMBER=0 PREFIX SECTIONS_SEEN=() SHOWN_SEC_HEAD=0 TEMP VALUE
+  local DELIM ERROR_CODE IGNORE_SECTION=0 INIFD KEY LINE LINENUMBER=0 PREFIX SECTIONS_SEEN=() SHOWN_SEC_HEAD=0 TEMP VALUE
   declare DELIM_SET=0 INIFILE
 
   # Parse options.
@@ -353,14 +353,17 @@ parse_ini() {
       # Check the format of the section definition.
       if [[ "${LINE: -1:1}" != "]" ]]; then
         echo "${0##*/}: line $LINENUMBER: unmatched [ in section definition - skipping section" >&2
+        ERROR_CODE=2
         IGNORE_SECTION=1
         continue
       elif [[ "${LINE:1:-1}" =~ [^$ACCEPTABLE_CHARS\[\]]* ]]; then
         echo "${0##*/}: line $LINENUMBER: invalid characters in section definition - skipping section" >&2
+        ERROR_CODE=2
         IGNORE_SECTION=1
         continue
       elif [[ -z "${LINE:1:-1}" ]] || [[ "${LINE:1:-1}" =~ ^[[:blank:]]+$ ]]; then
         echo "${0##*/}: line $LINENUMBER: empty section definition - skipping section" >&2
+        ERROR_CODE=2
         IGNORE_SECTION=1
         continue
       else
@@ -390,6 +393,7 @@ parse_ini() {
         # If the prefix and delim are both empty, the section name cannot begin with a number.
         if [[ -z "$PREFIX" ]] && [[ -z "$DELIM" ]] && [[ "${LINE:0:1}" =~ [[:digit:]] ]]; then
           echo "${0##*/}: line $LINENUMBER: section name cannot begin with a number when prefix (-p) and delim (-d) are both empty - skipping section" >&2
+          ERROR_CODE=2
           IGNORE_SECTION=1
           continue 2
         else
@@ -403,6 +407,7 @@ parse_ini() {
             if [[ "$CURRENT_SECTION" == "$TEMP" ]]; then
               # It's a section we've seen before - don't process it.
               echo "${0##*/}: line $LINENUMBER: repeated section name - skipping section" >&2
+              ERROR_CODE=2
               IGNORE_SECTION=1
               continue 2
             fi
@@ -424,6 +429,7 @@ parse_ini() {
           LINE="${LINE:1:-1}"
         else
           echo "${0##*/}: line $LINENUMBER: unmatched quotes - skipping property" >&2
+          ERROR_CODE=2
           continue
         fi
       fi
@@ -454,6 +460,7 @@ parse_ini() {
         ((CHECK_ONLY == 0)) && printf "%s%s%s['%s']='%s'\\n" "$PREFIX" "${PREFIX:+$DELIM}" "$CURRENT_SECTION" "$LINE" "$TEMP"
       else
         echo "${0##*/}: line $LINENUMBER: key without a value - skipping property" >&2
+        ERROR_CODE=2
         continue
       fi
     elif ((IGNORE_SECTION == 0)); then		# Process the property definition as a key/value pair.
@@ -480,6 +487,7 @@ parse_ini() {
           VALUE="${VALUE:1:-1}"
         else
           echo "${0##*/}: line $LINENUMBER: unmatched quotes - skipping property" >&2
+          ERROR_CODE=2
           continue
         fi
       fi
@@ -519,6 +527,8 @@ parse_ini() {
 
   # Clean up the environment.
   unset DELIM_SET INIFILE
+
+  return "${ERROR_CODE:-0}"
 }
 
 
