@@ -64,7 +64,7 @@ of the parser can be examined - the same commands demonstrated here can be used
 within an `eval` in a script.
 
 Basic usage - no options:
-```
+```bash
 $ /path/to/parse-ini example.ini
 declare -g -A INI_global
 INI_global['Global Key']='Global Value'
@@ -78,7 +78,7 @@ has it's own element, `Section 1 Key` (line 4).
 
 To use the arrays (once `eval`ed into your script) would be as simple as
 accessing any associative array element:
-```
+```bash
 printf "%s\\n" "${INI_global['Global Key']}"
 printf "%s\\n" "${INI_Section_1['Section 1 Key']}"
 ```
@@ -115,7 +115,7 @@ Manipulating the options allows the arrays to be declared in different ways.
 If, for example, you don't like the `<prefix>` used by the parser ("INI" by
 default), you can change it with `--prefix` (or `-p` if you prefer short
 options):
-```
+```bash
 $ /path/to/parse-ini --prefix "Foo" example.ini
 declare -g -A Foo_global
 Foo_global['Global Key']='Global Value'
@@ -128,21 +128,21 @@ to be accessed using their case sensitive names (see below for options to change
 the case of declared arrays).
 
 To access this array (once `eval`ed into your script, you would use:
-```
+```bash
 printf "%s\\n" "${Foo_global['Global Key']}"
 printf "%s\\n" "${Foo_Section_1['Section 1 Key']}"
 ```
 
 Equally, the `<delimiter>` can be changed either with or independently of the 
 prefix:
-```
+```bash
 $ /path/to/parse-ini --delim "X" example.ini
 declare -g -A INIXglobal
 INIXglobal['Global Key']='Global Value'
 declare -g -A INIXSection_1
 INIXSection_1['Section 1 Key']='Section 1 Value'
 ```
-```
+```bash
 $ /path/to/parse-ini --prefix "Foo" --delim "X" example.ini
 declare -g -A FooXglobal
 FooXglobal['Global Key']='Global Value'
@@ -150,14 +150,14 @@ declare -g -A FooXSection_1
 FooXSection_1['Section 1 Key']='Section 1 Value'
 ```
 Accessed with:
-```
+```bash
 printf "%s\\n" "${FooX_global['Global Key']}"
 printf "%s\\n" "${FooX_Section_1['Section 1 Key']}"
 ```
 
 We also have the option of changing the name of the 'global' section name used
 when declaring the arrays:
-```
+```bash
 $ /path/to/parse-ini --global-name "Head" example.ini
 declare -g -A INI_Head
 INI_Head['Global Key']='Global Value'
@@ -169,7 +169,7 @@ account when accessing the array.
 
 Say you want to access the arrays using all capitals or all lowercase names.
 There's an option for that too!  Note the combination of options from above:
-```
+```bash
 $ /path/to/parse-ini --prefix "Foo" --global-name "Head" --lowercase example.ini
 declare -g -A foo_head
 foo_head['Global Key']='Global Value'
@@ -177,7 +177,7 @@ declare -g -A foo_section_1
 foo_section_1['Section 1 Key']='Section 1 Value'
 ```
 Or:
-```
+```bash
 $ /path/to/parse-ini --prefix "Foo" --global-name "Head" --uppercase example.ini
 declare -g -A FOO_HEAD
 FOO_HEAD['Global Key']='Global Value'
@@ -191,7 +191,7 @@ affected.  But the `<key name>` remains in the case from the INI file.
 
 
 You can even tell `parse-ini` to not use any `<prefix>` or `<delimiter>`:
-```
+```bash
 $ /path/to/parse-ini --prefix "" --delim "" example.ini
 declare -g -A global
 global['Global Key']='Global Value'
@@ -199,7 +199,7 @@ declare -g -A Section_1
 Section_1['Section 1 Key']='Section 1 Value'
 ```
 Which you would access using:
-```
+```bash
 printf "%s\\n" "${global['Global Key']}"
 printf "%s\\n" "${Section_1['Section 1 Key']}"
 ```
