@@ -1,5 +1,5 @@
 #!/bin/bash
-# Bash INI file parser v0.1.0.
+# Bash INI file parser v0.1.1.
 # Copyright (C) 2019 Darren 'Tadgy' Austin <darren (at) afterdark.org.uk>.
 # Licensed under the terms of the GNU General Public Licence version 3.
 #
@@ -115,6 +115,7 @@ parser_getopts() {
           return 2
         ;;
       --)
+          shift
           break
         ;;
       --*|-*)
@@ -281,7 +282,7 @@ parse_ini() {
 
   # If reading from stdin, don't try to open the FD as it's already open.
   if [[ "$INIFILE" == "-" ]]; then
-    INIFD="1"
+    INIFD="0"
   else
     # File accessability checks.
     if [[ ! -e "$INIFILE" ]]; then
