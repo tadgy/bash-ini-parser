@@ -143,7 +143,7 @@ parser_getopts() {
 parser_help() {
         #........1.........2.........3.........4.........5.........6.........7.........8
   cat <<-EOF
-	Usage: ${0##*/} [options] <INI file>
+	Usage: ${0##*/} [options] <INI file|->
 	Parse an INI-style file into array assignments which can be 'eval'ed into Bash.
 	Example usage in bash script: eval "\$(${0##*/} example.ini)"
 
@@ -159,11 +159,11 @@ parser_help() {
 	  -d <char(s)>, --delim <char(s)>
 	      The character(s) (which may be an empty value) to use as a delimiter
 	      between the prefix and section name when declaring the arrays.  The
-	      default is "_", except when '--prefix' is set to an empty value, in which
-	      case the default is also empty.  Only alphanumerics and _ may be used with
-	      this option, and it may not begin with a number if '--prefix' is empty.
-	      The delimiter may be converted to upper or lower case depending upon the
-	      use of '--uppercase' or '--lowercase'.
+	      default is "_", except when '-p' is set to an empty value, in which case
+	      the default is also empty.  Only alphanumerics and _ may be used with
+	      this option, and it may not begin with a number if '-p' is empty.  The
+	      delimiter may be converted to upper or lower case depending upon the use
+	      of '--uppercase' or '--lowercase'.
 	  -e, --export
 	      When declaring the arrays, export them to the environment.
 	  -h, -?, --help
@@ -176,7 +176,9 @@ parser_help() {
 	      default is "INI".  An empty prefix (denoted by "") implies '-d ""', but
 	      this can be overridden by explicitly specifying a delimiter with '-d'.
 	      Only alphanumerics and "_" may be used with this option, and it may not be
-	      empty when delim ('-d') begins with a number.
+	      empty when delim ('-d') begins with a number.  The prefix may be converted
+	      to upper or lower case depending upon the use of '--uppercase' or
+	      '--lowercase'.
 	  -v, --version
 	      Show version and copyright information.
 
@@ -192,11 +194,12 @@ parser_help() {
 	      The name of the 'global' section used when declaring the arrays.  Only
 	      alphanumerics and "_" may be used with this option, which cannot be empty.
 	      The name may not begin with a number, and may be converted to upper or
-	      lower case depending upon the use of '--uppercase' or '--lowercase'.
+	      lower case depending upon the use of '--uppercase' or '--lowercase'.  The
+	      default is "global".
 	  --lowercase
 	      When declaring the arrays, the case of the prefix ('--prefix') name,
 	      delimiter and section name is kept as per the INI file.  With this option
-	      all items are converted to lower case.  The case of the propertie's
+	      all items are converted to lower case.  The case of the properties'
 	      keys/values is not affected.
 	  --no-booleans
 	      Normally, the parser interprites the presence of a key without an
@@ -220,7 +223,7 @@ parser_help() {
 	  --uppercase
 	      When declaring the arrays, the case of the prefix ('--prefix') name,
 	      delimiter and section name is kept as per the INI file.  With this option
-	      all items are converted to upper case.  The case of the propertie's
+	      all items are converted to upper case.  The case of the properties'
 	      keys/values is not affected.
 	Option processing ceases with the first non-option argument, or "--".
 	EOF
@@ -230,7 +233,7 @@ parser_help() {
 parser_version() {
         #........1.........2.........3.........4.........5.........6.........7.........8
   cat <<-EOF
-	Bash INI file parser v0.1.0.
+	Bash INI file parser v0.1.1.
 	Copyright (C) 2019 Darren 'Tadgy' Austin <darren (at) afterdark.org.uk>.
 	Licensed under the terms of the GNU General Public Licence version 3.
 
