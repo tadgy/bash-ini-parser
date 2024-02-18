@@ -10,7 +10,7 @@
 
 
 parser_getopts() {
-  while [[ ! -z "$1" ]]; do
+  while [[ -n "$1" ]]; do
     case "$1" in
       -b|-bound|--bound)
           if [[ -z "$2" ]]; then
@@ -485,8 +485,8 @@ parse_ini() {
       LINE="${LINE/$KEYVALUE_DELIM+([[:blank:]])/$KEYVALUE_DELIM}"
 
       # Extract the key and the value.
-      KEY="${LINE%%$KEYVALUE_DELIM*}"
-      VALUE="${LINE#*$KEYVALUE_DELIM}"
+      KEY="${LINE%%"$KEYVALUE_DELIM"*}"
+      VALUE="${LINE#*"$KEYVALUE_DELIM"}"
 
       # Squash multiple consecutive blanks into a single space.
       ((SQUASH_SPACES == 1)) && KEY="${KEY//+([[:blank:]])/ }"
