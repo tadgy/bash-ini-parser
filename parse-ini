@@ -71,12 +71,15 @@ parser_getopts() {
       -l|-local|--local)
           DECLARE_SCOPE="-l"
         ;;
+      -lowercase|--lowercase)
+          CONVERT_CASE="-1"
+        ;;
+      -lowercase-keys|--lowercase-keys)
+          CONVERT_KEY_CASE="-1"
+        ;;
       -merge-delim|--merge-delim)
           MERGE_DELIM="$2"
           shift
-        ;;
-      -lowercase|--lowercase)
-          CONVERT_CASE="-1"
         ;;
       -no-booleans|--no-booleans)
           USE_BOOLEANS="0"
@@ -114,6 +117,9 @@ parser_getopts() {
         ;;
       -uppercase|--uppercase)
           CONVERT_CASE="1"
+        ;;
+      -uppercase-keys|--uppercase-keys)
+          CONVERT_KEY_CASE="1"
         ;;
       -v|-version|--version)
           parser_version
@@ -207,6 +213,8 @@ parser_help() {
 	      delimiter and section name is kept as per the INI file.  With this option
 	      all items are converted to lower case.  The case of the properties'
 	      keys/values is not affected.
+	  --lowercase-keys
+	      Convert the key name to lowercase.
 	  --merge-delim
 	      When '--duplicates-merge' is used, this sets the delimiters between each
 	      of the merged values.
@@ -234,6 +242,8 @@ parser_help() {
 	      delimiter and section name is kept as per the INI file.  With this option
 	      all items are converted to upper case.  The case of the properties'
 	      keys/values is not affected.
+	  --uppercase-keys
+	      Convert the key name to uppercase.
 	Option processing ceases with the first non-option argument, or "--".
 	EOF
 }
@@ -264,8 +274,9 @@ parse_ini() {
   local ACCEPTABLE_CHARS="[:blank:][:alnum:]_.+-"	# Characters allowed in section and key names.  Must be a valid regex bracket expression.
   local CHECK_ONLY="0"					# Whether the parser is in check or normal mode.  0 = normal mode, 1 = check mode.
   local COMMENT_CHARS="#;"				# Characters which indicate the start of a comment line.
-  local CONVERT_CASE="0"				# Whether to keep or convert section and key names to upper or loweer case.  -1 = covert to lowercase, 0 = keep case, 1 = convert to uppercase.
+  local CONVERT_CASE="0"				# Whether to keep or convert prefix and section names to upper or loweer case.  -1 = covert to lowercase, 0 = keep case, 1 = convert to uppercase.
   local CONVERT_CHARS="[:blank:].+-"			# Characters from ACCEPTABLE_CHARS in section and key names that should be converted to _.  Must be a valid regex bracket expression.
+  local CONVERT_KEY_CASE="0"				# Whether to keep or convert key names to upper or loweer case.  -1 = covert to lowercase, 0 = keep case, 1 = convert to uppercase.
   local CURRENT_SECTION="global"			# Name used for the 'global' section of the INI file.
   local DECLARE_SCOPE="-g"				# The scope given in the array definitions.  "-g" = global scope, "-l" = local scope, "-x" = export values.
   local DUPLICATES_MERGE="0"				# Whether to merge latter duplicate key's values with earlier key's values.  0 = don't merge, 1 = do merge.
@@ -274,7 +285,7 @@ parse_ini() {
   local SQUASH_SPACES="1"				# Whether to squash multiple consecutive blanks into a single space.  0 = don't squash, 1 = do squash.
   local TEXTUAL_BOOLEANS="0"				# Whether to use "false" and "true" for booleans.  0 = use "0" and "1", 1 = use "false" and "true".
   local USE_BOOLEANS="1"				# Whether to allow the use of boolean values in the INI file.  0 = don't allow, 1 = do allow.
-  local VARIABLE_PREFIX="INI"				# Prefix for all variables.  Note: case is not changed, even with CONVERT_CASE set.
+  local VARIABLE_PREFIX="INI"				# Prefix for all variables.
   local VARIABLE_DELIM="_"				# Delimiter between prefix and section name, unless VARIABLE_PREFIX is empty.
 
   # Variables.
@@ -493,6 +504,10 @@ parse_ini() {
 
       # Escape any 's in the key name.
       KEY="${KEY//\'/\'\\\'\'}"
+
+      # Convert the key to lower or upper case if requested.
+      (( CONVERT_KEY_CASE == -1 )) && KEY="${KEY,,}"
+      (( CONVERT_KEY_CASE == 1 )) && KEY="${KEY^^}"
 
       # If the value starts with a " or ' it must end with same.
       if [[ "${VALUE:0:1}" =~ [\"\'] ]]; then
