@@ -1,7 +1,8 @@
 #!/bin/bash
-# Bash INI file parser v0.1.1.
-# Copyright (C) 2019 Darren 'Tadgy' Austin <darren (at) afterdark.org.uk>.
-# Licensed under the terms of the GNU General Public Licence version 3.
+# Bash INI file parser version: 0.1.2
+# Copyright (c) 2019-2024:
+#   Darren 'Tadgy' Austin <darren (at) afterdark.org.uk>
+# Licensed under the terms of the GNU General Public License version 3.
 #
 # This program comes with ABSOLUTELY NO WARRANTY.  For details and a full copy of
 # the license terms, see: <http://gnu.org/licenses/gpl.html>.  This is free
@@ -69,6 +70,10 @@ parser_getopts() {
         ;;
       -l|-local|--local)
           DECLARE_SCOPE="-l"
+        ;;
+      -merge-delim|--merge-delim)
+          MERGE_DELIM="$2"
+          shift
         ;;
       -lowercase|--lowercase)
           CONVERT_CASE="-1"
@@ -188,8 +193,9 @@ parser_help() {
 	      is to have the latter instance of the key overwrite the value of the
 	      earlier.  With this option, the keys are merged, and a new, concatinated,
 	      value will result.  The concatinated values are not separated by any
-	      characters.  Booleans are the exception to this behaviour, as the
-	      latter bool will always override an earlier setting.
+	      characters, unless '--merge-delim' is specified.  Booleans are the
+	      exception to this behaviour, as the latter bool will always override an
+	      earlier setting.
 	  --global-name <name>
 	      The name of the 'global' section used when declaring the arrays.  Only
 	      alphanumerics and "_" may be used with this option, which cannot be empty.
@@ -201,6 +207,9 @@ parser_help() {
 	      delimiter and section name is kept as per the INI file.  With this option
 	      all items are converted to lower case.  The case of the properties'
 	      keys/values is not affected.
+	  --merge-delim
+	      When '--duplicates-merge' is used, this sets the delimiters between each
+	      of the merged values.
 	  --no-booleans
 	      Normally, the parser interprites the presence of a key without an
 	      associated value as a boolean.  Keys which are proceeded by "no_" are
@@ -270,6 +279,7 @@ parse_ini() {
 
   # Variables.
   local DELIM ERROR_CODE IGNORE_SECTION=0 INIFD KEY LINE LINENUMBER=0 PREFIX SECTIONS_SEEN=() SHOWN_SEC_HEAD=0 TEMP VALUE
+  local -A DUPLICATE_KEY
   declare DELIM_SET=0 INIFILE
 
   # Parse options.
@@ -517,7 +527,12 @@ parse_ini() {
       if ((DUPLICATES_MERGE == 0)); then
         ((CHECK_ONLY == 0)) && printf "%s%s%s['%s']='%s'\\n" "$PREFIX" "$TEMP" "$CURRENT_SECTION" "$KEY" "${VALUE//\'/\'\\\'\'}"
       else
-        ((CHECK_ONLY == 0)) && printf "%s%s%s['%s']+='%s'\\n" "$PREFIX" "$TEMP" "$CURRENT_SECTION" "$KEY" "${VALUE//\'/\'\\\'\'}"
+        if [[ -z "${DUPLICATE_KEY["$KEY"]}" ]]; then
+          ((CHECK_ONLY == 0)) && printf "%s%s%s['%s']+='%s'\\n" "$PREFIX" "$TEMP" "$CURRENT_SECTION" "$KEY" "${VALUE//\'/\'\\\'\'}"
+          DUPLICATE_KEY["$KEY"]="1"
+        else
+          ((CHECK_ONLY == 0)) && printf "%s%s%s['%s']+='%s%s'\\n" "$PREFIX" "$TEMP" "$CURRENT_SECTION" "$KEY" "$MERGE_DELIM" "${VALUE//\'/\'\\\'\'}"
+        fi
       fi
     else
       ((CHECK_ONLY == 1)) && echo "${0##*/}: line $LINENUMBER: skipping line" >&2
