@@ -223,7 +223,7 @@ The values within the array element will be separated by \003 (hex).
 The output of `parse-ini` will not directly show the delimiter character in
 the terminal, but it *is* there when used in a script:
 ```bash
-eval `$(/path/to/parse-ini --duplicates-merge example.ini)`
+eval "$(/path/to/parse-ini --duplicates-merge example.ini)"
 awk -F $'\003' '{ print $2 }' <<<"${INI_global[Key]}"
 ```
 
