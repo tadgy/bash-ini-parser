@@ -208,6 +208,31 @@ Note that there are some extra rules that come into play when leaving out the
 example.
 
 
+When the option `--duplicates-merge` is used with a default `--merge-delim`
+setting, each record in the array element will be separated by the character
+hex \003.
+
+For example, whith an `example.ini` containing:
+```
+Key = Value 1
+Key = Value 2
+Key = Value 3
+```
+
+The values within the array element will be separated by \003 (hex).
+The output of `parse-ini` will not directly show the delimiter character in
+the terminal, but it *is* there when used in a script:
+```bash
+eval `/path/to/parse-ini --duplicates-merge example.ini`
+awk -F $'\003' '{ print $2 }' <<<"${INI_global[Key]}"
+```
+
+Would output the second value:
+```
+Value 2
+```
+
+
 Using these options allows you to access the arrays in your preferred style -
 mixed case, all lowercase or all uppercase, and with any prefix or delimiter
 you prefer.

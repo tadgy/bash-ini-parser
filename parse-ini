@@ -1,5 +1,5 @@
 #!/bin/bash
-# Bash INI file parser version: 0.1.2
+# Bash INI file parser version: 0.1.3
 # Copyright (c) 2019-2024:
 #   Darren 'Tadgy' Austin <darren (at) afterdark.org.uk>
 # Licensed under the terms of the GNU General Public License version 3.
@@ -198,10 +198,10 @@ parser_help() {
 	      If a duplicate key for a specific section is found, the normal behaviour
 	      is to have the latter instance of the key overwrite the value of the
 	      earlier.  With this option, the keys are merged, and a new, concatinated,
-	      value will result.  The concatinated values are not separated by any
-	      characters, unless '--merge-delim' is specified.  Booleans are the
-	      exception to this behaviour, as the latter bool will always override an
-	      earlier setting.
+	      value will result.  The concatinated values are separated by the
+	      character(s) specified by '--merge-delim' (default hex \003).
+	      Booleans are the exception to this behaviour, as the latter bool will
+	      always override an earlier setting.
 	  --global-name <name>
 	      The name of the 'global' section used when declaring the arrays.  Only
 	      alphanumerics and "_" may be used with this option, which cannot be empty.
@@ -216,8 +216,9 @@ parser_help() {
 	  --lowercase-keys
 	      Convert the key name to lowercase.
 	  --merge-delim
-	      When '--duplicates-merge' is used, this sets the delimiters between each
-	      of the merged values.
+	      When '--duplicates-merge' is used, this sets the delimiter characters
+	      between each of the merged values.  The default character is hex \003,
+	      which is known as the "end of text" marker.
 	  --no-booleans
 	      Normally, the parser interprites the presence of a key without an
 	      associated value as a boolean.  Keys which are proceeded by "no_" are
@@ -281,6 +282,7 @@ parse_ini() {
   local DECLARE_SCOPE="-g"				# The scope given in the array definitions.  "-g" = global scope, "-l" = local scope, "-x" = export values.
   local DUPLICATES_MERGE="0"				# Whether to merge latter duplicate key's values with earlier key's values.  0 = don't merge, 1 = do merge.
   local KEYVALUE_DELIM="="				# Delimiter between key and value.  Must be a single character.
+  local MERGE_DELIM=$'\3'				# The delimiter between each of the merged values when --duplicates-merge is used.
   local REPEAT_SECTIONS="0"				# Whether to allow section names to repeat.  0 = no repeats, 1 = allow repeats.
   local SQUASH_SPACES="1"				# Whether to squash multiple consecutive blanks into a single space.  0 = don't squash, 1 = do squash.
   local TEXTUAL_BOOLEANS="0"				# Whether to use "false" and "true" for booleans.  0 = use "0" and "1", 1 = use "false" and "true".
